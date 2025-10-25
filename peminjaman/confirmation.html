@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Konfirmasi & Dokumentasi — Sistem Peminjaman</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: { colors: { campus: { primary: '#4F8EF7' }}}}};
+  </script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+</head>
+<body data-page="confirmation">
+  <div class="app">
+    <aside class="sidebar">
+      <a class="brand" href="index.html">
+        <div class="brand-logo" style="background: none; box-shadow: none;">
+          <img src="assets/img/logo kampus.png" alt="Logo Kampus" style="width: 48px !important; height: 48px !important; object-fit: contain;">
+        </div>
+        <h1>Sistem Peminjaman Fasilitas Kampus Universitas Tanri Abeng</h1>
+      </a>
+      <nav class="nav">
+        <a href="index.html">Beranda</a>
+        <a href="facilities.html">Daftar Fasilitas</a>
+        <a href="schedule.html">Jadwal & Ketersediaan</a>
+        <a href="borrow.html">Form Peminjaman</a>
+        <a href="confirmation.html">Konfirmasi & Dokumentasi</a>
+        <a href="admin.html">Admin Panel</a>
+      </nav>
+      <div class="muted">© 2025 Kampus • Versi demo</div>
+    </aside>
+
+    <header class="topbar">
+      <button class="btn hamburger" aria-label="Toggle menu">☰</button>
+      <div class="search">✅ Konfirmasi & Dokumentasi</div>
+      <div class="actions" id="authActions"></div>
+    </header>
+
+    <main class="main container">
+      <div class="breadcrumbs"><a href="index.html">Beranda</a> / Konfirmasi & Dokumentasi</div>
+      <h2 class="page-title">Konfirmasi & Dokumentasi Pengembalian</h2>
+
+      <section id="app-confirm">
+        <!-- Loading State -->
+        <div v-if="loading" class="bg-white border border-gray-200 rounded-xl shadow-sm p-8 text-center">
+          <div class="text-lg">⏳ Memuat data...</div>
+        </div>
+
+        <!-- Not Found State -->
+        <div v-if="!loading && !loan && loanId" class="bg-white border border-gray-200 rounded-xl shadow-sm p-8 text-center">
+          <div class="text-6xl mb-4">❌</div>
+          <h3 class="text-xl font-semibold mb-2">Data Peminjaman Tidak Ditemukan</h3>
+          <p class="text-slate-600 mb-4">Kode peminjaman: <code class="bg-slate-100 px-2 py-1 rounded">{{ loanId }}</code></p>
+          <p class="text-sm text-slate-500 mb-4">Kemungkinan penyebab:</p>
+          <ul class="text-sm text-slate-500 text-left max-w-md mx-auto mb-6">
+            <li>• Kode peminjaman salah atau tidak valid</li>
+            <li>• Data belum dibuat atau sudah dihapus</li>
+            <li>• Anda belum login untuk melihat data</li>
+          </ul>
+          <div class="flex gap-3 justify-center">
+            <a href="borrow.html" class="btn btn-primary">Buat Peminjaman Baru</a>
+            <a href="index.html" class="btn">Kembali ke Beranda</a>
+          </div>
+        </div>
+
+        <!-- No ID State -->
+        <div v-if="!loading && !loanId" class="bg-white border border-gray-200 rounded-xl shadow-sm p-8 text-center">
+          <div class="text-6xl mb-4">🔍</div>
+          <h3 class="text-xl font-semibold mb-2">Pilih Peminjaman</h3>
+          <p class="text-slate-600 mb-6">Silakan pilih peminjaman dari riwayat di bawah atau buat peminjaman baru</p>
+          <a href="borrow.html" class="btn btn-primary">Buat Peminjaman Baru</a>
+        </div>
+
+        <!-- Loan Detail -->
+        <div v-if="loan" class="bg-white border border-gray-200 rounded-xl shadow-sm mb-4">
+          <div class="p-4 border-b flex justify-between items-center">
+            <div>
+              <div class="badge">Kode: <strong>{{ loan.id }}</strong></div>
+              <h3 class="text-lg font-semibold mt-2">{{ loan.facilityName }}</h3>
+              <div class="text-sm text-slate-600">
+                {{ fmtDate(loan.startDate) }} {{ fmtTime(loan.startDate) }} - {{ fmtTime(loan.endDate) }}
+              </div>
+              <div class="text-sm text-slate-600">Peminjam: {{ loan.borrowerName }} • {{ loan.unit }}</div>
+            </div>
+            <div class="flex flex-col gap-2 items-end">
+              <span :class="['badge', loan.status==='approved'?'success':(loan.status==='pending'?'warn':(loan.status==='done'?'success':'danger'))]">
+                {{ loan.status }}
+              </span>
+              <button @click="window.print()" class="btn btn-sm">🖨️ Cetak</button>
+            </div>
+          </div>
+
+          <!-- Return Status for Admin/Staff -->
+          <div v-if="canMarkReturned && loan.status==='approved'" class="p-4 bg-amber-50 border-b">
+            <button @click="markReturned" class="btn btn-success">✅ Tandai Barang Sudah Dikembalikan Lengkap</button>
+          </div>
+        </div>
+
+        <!-- Chat Timeline -->
+        <div v-if="loan" class="bg-white border border-gray-200 rounded-xl shadow-sm mb-4">
+          <div class="p-4 border-b font-semibold">💬 Timeline Pengembalian</div>
+          <div class="p-4 space-y-3 max-h-96 overflow-y-auto">
+            <div v-for="c in comments" :key="c.id" :class="['flex gap-3', c.userRole==='admin' || c.userRole==='staff' ? 'flex-row-reverse' : '']">
+              <div :class="['flex-1 max-w-lg rounded-xl p-3 border', c.userRole==='admin' || c.userRole==='staff' ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200']">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="font-semibold text-sm">{{ c.userName }}</span>
+                  <span :class="['badge text-xs', c.userRole==='admin'?'success':(c.userRole==='staff'?'warn':'')]">{{ c.userRole || 'user' }}</span>
+                </div>
+                <div class="text-sm whitespace-pre-wrap">{{ c.message }}</div>
+                <div v-if="c.photoBase64" class="mt-2">
+                  <img :src="c.photoBase64" class="max-w-xs rounded border cursor-pointer" @click="showPhoto(c.photoBase64)" />
+                </div>
+                <div class="text-xs text-slate-500 mt-1">{{ fmtDateTime(c.createdAt) }}</div>
+              </div>
+            </div>
+            <div v-if="!comments.length" class="text-center text-slate-500 py-6">
+              Belum ada komentar. Tambahkan komentar pengembalian di bawah.
+            </div>
+          </div>
+
+          <!-- Comment Form -->
+          <div class="p-4 border-t bg-slate-50">
+            <form @submit.prevent="postComment" class="space-y-3">
+              <textarea v-model="newComment" rows="3" placeholder="Tulis komentar: Contoh: 'Barang sudah dikembalikan ke ruang 203'" class="w-full rounded-lg border-gray-200" required></textarea>
+              <div class="flex gap-2 items-center">
+                <label class="btn btn-sm cursor-pointer">
+                  📷 Upload Foto Bukti
+                  <input type="file" accept="image/*" @change="handlePhoto" class="hidden" />
+                </label>
+                <span v-if="photoPreview" class="text-xs text-green-600">✓ Foto siap</span>
+                <button type="submit" class="btn btn-primary ml-auto">Kirim Komentar</button>
+              </div>
+              <div v-if="photoPreview" class="relative inline-block">
+                <img :src="photoPreview" class="max-w-xs rounded border" />
+                <button type="button" @click="clearPhoto" class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 text-xs">✕</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- My Loans Table -->
+        <h3 class="text-lg font-semibold mb-2">Riwayat Pengajuan Saya</h3>
+        <div class="bg-white border border-gray-200 rounded-xl shadow-sm overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead class="bg-slate-50 text-slate-600">
+              <tr>
+                <th class="px-4 py-3 text-left">Kode</th>
+                <th class="px-4 py-3 text-left">Fasilitas</th>
+                <th class="px-4 py-3 text-left">Waktu</th>
+                <th class="px-4 py-3 text-left">Status</th>
+                <th class="px-4 py-3 text-left">Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="l in myLoans" :key="l.id" class="border-t">
+                <td class="px-4 py-3">{{ l.id }}</td>
+                <td class="px-4 py-3">{{ l.facilityName }}</td>
+                <td class="px-4 py-3">{{ fmtDate(l.startDate) }} {{ fmtTime(l.startDate) }}</td>
+                <td class="px-4 py-3"><span :class="['badge', l.status==='approved'?'success':(l.status==='pending'?'warn':(l.status==='done'?'success':'danger'))]">{{ l.status }}</span></td>
+                <td class="px-4 py-3"><a :href="'confirmation.html?id='+l.id" class="btn btn-sm">Lihat Detail</a></td>
+              </tr>
+              <tr v-if="!myLoans.length"><td colspan="5" class="px-4 py-6 text-center text-slate-500">Tidak ada riwayat.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="footer mt-4">Gunakan tombol Cetak untuk menyimpan sebagai PDF.</div>
+      </section>
+    </main>
+  </div>
+
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/auth-guard.js"></script>
+  <script src="assets/js/auth-ui.js"></script>
+
+  <script>
+    const { createApp, ref, onMounted, computed } = Vue
+
+    createApp({
+      setup() {
+        const loanId = ref(null)
+        const loan = ref(null)
+        const comments = ref([])
+        const myLoans = ref([])
+        const newComment = ref('')
+        const photoPreview = ref(null)
+        const photoBase64 = ref(null)
+        const auth = ref(null)
+        const loading = ref(true)
+
+        // Check if API available
+        const API_PHP = 'http://localhost/peminjaman/api'
+        const API_NODE = 'http://localhost:4000/api'
+        let API_BASE = API_PHP
+        const useAPI = ref(false)
+
+        async function checkAPI() {
+          // Try PHP backend first
+          try {
+            const r = await fetch(`${API_PHP}/`)
+            if (r.ok) {
+              useAPI.value = true
+              API_BASE = API_PHP
+              console.log('Using PHP backend')
+              return
+            }
+          } catch (e) { }
+          
+          // Fallback to Node.js
+          try {
+            const r = await fetch(`${API_NODE}/health`)
+            if (r.ok) {
+              useAPI.value = true
+              API_BASE = API_NODE
+              console.log('Using Node.js backend')
+              return
+            }
+          } catch (e) { }
+          
+          console.log('No backend available, using localStorage')
+        }
+
+        // Auth check
+        const canMarkReturned = computed(() => {
+          if (!auth.value) return false
+          return auth.value.role === 'admin' || auth.value.role === 'staff'
+        })
+
+        // Load loan detail
+        async function loadLoan() {
+          if (!loanId.value) return
+          
+          // First try bookings API (for public form submissions)
+          if (API_PHP) {
+            try {
+              const r = await fetch(`${API_PHP}/bookings/${loanId.value}`)
+              if (r.ok) {
+                const data = await r.json()
+                if (data.success && data.loan) {
+                  // Map database fields to frontend format
+                  loan.value = {
+                    id: data.loan.booking_id,
+                    borrowerName: data.loan.borrower_name,
+                    identity: data.loan.identity,
+                    unit: data.loan.unit,
+                    facilityId: data.loan.facility_id,
+                    facilityName: data.loan.facility_name,
+                    roomType: data.loan.room_type,
+                    startDate: data.loan.start_date,
+                    endDate: data.loan.end_date,
+                    notes: data.loan.notes,
+                    documentName: data.loan.document_name,
+                    status: data.loan.status,
+                    createdAt: data.loan.created_at,
+                    facilities: data.loan.facilities || []
+                  }
+                  console.log('Loan loaded from PHP bookings API:', loan.value)
+                  return
+                }
+              }
+            } catch (e) { 
+              console.error('PHP bookings API error:', e) 
+            }
+          }
+          
+          // Then try regular loans API
+          if (useAPI.value) {
+            try {
+              const token = localStorage.getItem('spfk_api_token')
+              const r = await fetch(`${API_BASE}/loans/${loanId.value}`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {}
+              })
+              if (r.ok) {
+                const data = await r.json()
+                // Handle both PHP and Node.js response formats
+                loan.value = data.loan || data
+                console.log('Loan loaded from loans API:', loan.value)
+                return
+              }
+            } catch (e) { 
+              console.error('API error loading loan:', e) 
+            }
+          }
+          
+          // Fallback to localStorage
+          const all = SPFK.getLoans()
+          const found = all.find(l => l.id === loanId.value)
+          if (found) {
+            const fac = SPFK.getFacilities().find(f => f.id === found.facilityId)
+            loan.value = { ...found, facilityName: fac ? fac.name : 'Fasilitas' }
+            console.log('Loan loaded from localStorage:', loan.value)
+          } else {
+            // Also try bookings in localStorage
+            const bookings = SPFK.getBookings()
+            const foundBooking = bookings.find(b => b.id === loanId.value)
+            if (foundBooking) {
+              loan.value = {
+                id: foundBooking.id,
+                borrowerName: foundBooking.requesterName,
+                identity: '',
+                unit: foundBooking.unit,
+                facilityId: foundBooking.facilityId,
+                facilityName: foundBooking.facilityName,
+                roomType: '',
+                startDate: foundBooking.startDate,
+                endDate: foundBooking.endDate,
+                notes: foundBooking.purpose,
+                documentName: '',
+                status: foundBooking.status,
+                createdAt: foundBooking.createdAt,
+                facilities: []
+              }
+              console.log('Loan loaded from localStorage bookings:', loan.value)
+            } else {
+              console.warn('Loan not found:', loanId.value)
+            }
+          }
+        }
+
+        // Load comments
+        async function loadComments() {
+          if (!loanId.value) return
+          if (useAPI.value) {
+            try {
+              const token = localStorage.getItem('spfk_api_token')
+              const r = await fetch(`${API_BASE}/comments/${loanId.value}`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {}
+              })
+              if (r.ok) {
+                const data = await r.json()
+                // Handle both PHP and Node.js response formats
+                comments.value = data.comments || data
+                console.log('Comments loaded from API:', comments.value)
+                return
+              }
+            } catch (e) { 
+              console.error('API error loading comments:', e) 
+            }
+          }
+          // Fallback
+          comments.value = SPFK.getComments(loanId.value)
+          console.log('Comments loaded from localStorage:', comments.value)
+        }
+
+        // Load my loans
+        async function loadMyLoans() {
+          if (useAPI.value) {
+            try {
+              const token = localStorage.getItem('spfk_api_token')
+              const r = await fetch(`${API_BASE}/loans`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {}
+              })
+              if (r.ok) {
+                const data = await r.json()
+                // Handle both PHP and Node.js response formats
+                myLoans.value = data.loans || data
+                console.log('My loans loaded from API:', myLoans.value)
+                return
+              }
+            } catch (e) { 
+              console.error('API error loading my loans:', e) 
+            }
+          }
+          // Fallback
+          const all = SPFK.getLoans()
+          myLoans.value = all.map(l => {
+            const fac = SPFK.getFacilities().find(f => f.id === l.facilityId)
+            return { ...l, facilityName: fac ? fac.name : 'Fasilitas' }
+          })
+          console.log('My loans loaded from localStorage:', myLoans.value)
+        }
+
+        // Photo handling
+        function handlePhoto(e) {
+          const file = e.target.files[0]
+          if (!file) return
+          // 5MB limit
+          if (file.size > 5 * 1024 * 1024) {
+            alert('Ukuran file maksimal 5 MB')
+            return
+          }
+          const reader = new FileReader()
+          reader.onload = () => {
+            photoPreview.value = reader.result
+            photoBase64.value = reader.result
+          }
+          reader.readAsDataURL(file)
+        }
+
+        function clearPhoto() {
+          photoPreview.value = null
+          photoBase64.value = null
+        }
+
+        // Post comment
+        async function postComment() {
+          if (!loanId.value || !newComment.value.trim()) return
+          
+          const comment = {
+            id: 'cmt_' + Date.now(),
+            loanId: loanId.value,
+            userId: auth.value ? auth.value.id : 'guest',
+            userName: auth.value ? auth.value.name : 'Guest User',
+            userRole: auth.value ? auth.value.role : 'user',
+            message: newComment.value.trim(),
+            photoBase64: photoBase64.value,
+            createdAt: new Date().toISOString()
+          }
+
+          if (useAPI.value) {
+            try {
+              const token = localStorage.getItem('spfk_api_token')
+              const r = await fetch(`${API_BASE}/comments/${loanId.value}`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  ...(token ? { Authorization: `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({
+                  message: comment.message,
+                  photoBase64: comment.photoBase64
+                })
+              })
+              if (r.ok) {
+                newComment.value = ''
+                clearPhoto()
+                await loadComments()
+                return
+              }
+            } catch (e) { console.error(e) }
+          }
+
+          // Fallback
+          SPFK.addComment(loanId.value, comment)
+          comments.value = SPFK.getComments(loanId.value)
+          newComment.value = ''
+          clearPhoto()
+        }
+
+        // Mark as returned (admin/staff)
+        async function markReturned() {
+          if (!canMarkReturned.value || !loanId.value) return
+          if (!confirm('Tandai barang sudah dikembalikan lengkap?')) return
+
+          if (useAPI.value) {
+            try {
+              const token = localStorage.getItem('spfk_api_token')
+              const r = await fetch(`${API_BASE}/comments/${loanId.value}/mark-returned`, {
+                method: 'PATCH',
+                headers: { Authorization: `Bearer ${token}` }
+              })
+              if (r.ok) {
+                alert('✅ Status berhasil diubah menjadi Done')
+                await loadLoan()
+                await loadComments()
+                return
+              }
+            } catch (e) { console.error(e) }
+          }
+
+          // Fallback
+          const all = SPFK.getLoans()
+          const idx = all.findIndex(l => l.id === loanId.value)
+          if (idx >= 0) {
+            all[idx].status = 'done'
+            all[idx].updatedAt = new Date().toISOString()
+            SPFK.setLoans(all)
+            loan.value.status = 'done'
+            alert('✅ Status berhasil diubah menjadi Done')
+          }
+        }
+
+        // Format helpers
+        function fmtDate(iso) {
+          if (!iso) return ''
+          return new Date(iso).toLocaleDateString('id-ID')
+        }
+        function fmtTime(iso) {
+          if (!iso) return ''
+          return new Date(iso).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+        }
+        function fmtDateTime(iso) {
+          if (!iso) return ''
+          return new Date(iso).toLocaleString('id-ID')
+        }
+
+        function showPhoto(base64) {
+          const w = window.open()
+          w.document.write(`<img src="${base64}" style="max-width:100%"/>`)
+        }
+
+        onMounted(async () => {
+          // Get loanId from URL
+          const params = new URLSearchParams(window.location.search)
+          loanId.value = params.get('id')
+
+          // Get auth
+          auth.value = SPFK.getAuth()
+
+          // Check API
+          await checkAPI()
+
+          // Load data
+          await loadLoan()
+          await loadComments()
+          await loadMyLoans()
+          
+          // Done loading
+          loading.value = false
+        })
+
+        return {
+          loanId,
+          loan,
+          comments,
+          myLoans,
+          newComment,
+          photoPreview,
+          canMarkReturned,
+          loading,
+          handlePhoto,
+          clearPhoto,
+          postComment,
+          markReturned,
+          showPhoto,
+          fmtDate,
+          fmtTime,
+          fmtDateTime,
+          window
+        }
+      }
+    }).mount('#app-confirm')
+  </script>
+</body>
+</html>

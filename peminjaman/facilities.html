@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daftar Fasilitas — Sistem Peminjaman</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <!-- Tailwind CSS CDN for rapid styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: { colors: { campus: { primary: '#4F8EF7' }}}}};
+  </script>
+  <!-- Vue 3 -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+</head>
+<body data-page="facilities" data-require-auth="true">
+  <div class="app">
+    <aside class="sidebar">
+      <a class="brand" href="index.html">
+        <div class="brand-logo" style="background: none; box-shadow: none;">
+          <img src="assets/img/logo kampus.png" alt="Logo Kampus" style="width: 48px !important; height: 48px !important; object-fit: contain;">
+        </div>
+        <h1>Sistem Peminjaman Fasilitas Kampus Universitas Tanri Abeng</h1>
+      </a>
+      <nav class="nav">
+        <a href="index.html">Beranda</a>
+        <a href="facilities.html">Daftar Fasilitas</a>
+        <a href="schedule.html">Jadwal & Ketersediaan</a>
+        <a href="borrow.html">Form Peminjaman</a>
+        <a href="confirmation.html">Konfirmasi & Dokumentasi</a>
+        <a href="admin.html">Admin Panel</a>
+      </nav>
+      <div class="muted">© 2025 Kampus • Versi demo</div>
+    </aside>
+
+    <header class="topbar">
+      <button class="btn hamburger" aria-label="Toggle menu">☰</button>
+      <div class="search">🔎 <input type="search" id="search" placeholder="Cari nama fasilitas..." /></div>
+      <div class="actions" id="authActions"></div>
+    </header>
+
+    <main class="main container">
+      <div class="breadcrumbs"><a href="index.html">Beranda</a> / Daftar Fasilitas</div>
+      <h2 class="page-title">Daftar Fasilitas</h2>
+
+      <!-- Vue App Root -->
+      <section id="app-facilities" class="mt-2">
+        <!-- Controls -->
+        <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-4 flex flex-col gap-3">
+          <div class="flex flex-col md:flex-row gap-3">
+            <input v-model="q" type="search" placeholder="Cari nama/keterangan fasilitas..." class="w-full md:flex-1 rounded-lg border-gray-200 focus:ring-4 focus:ring-blue-100 focus:border-campus-primary" />
+            <select v-model="loc" class="w-full md:w-64 rounded-lg border-gray-200 focus:ring-4 focus:ring-blue-100 focus:border-campus-primary">
+              <option value="all">Semua Lokasi</option>
+              <option v-for="l in locations" :key="l" :value="l">{{ l }}</option>
+            </select>
+            <a href="borrow.html" class="px-4 py-2 rounded-lg bg-campus-primary text-white hover:brightness-105 text-center">Ajukan Peminjaman</a>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="mt-4 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead class="bg-slate-50 text-slate-600">
+                <tr>
+                  <th class="px-4 py-3 text-left font-semibold">Nama Fasilitas</th>
+                  <th class="px-4 py-3 text-left font-semibold">Jumlah</th>
+                  <th class="px-4 py-3 text-left font-semibold">Lokasi</th>
+                  <th class="px-4 py-3 text-left font-semibold">Keterangan</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(f,idx) in filtered" :key="idx" class="border-t hover:bg-slate-50">
+                  <td class="px-4 py-3 font-medium">{{ f.name }}</td>
+                  <td class="px-4 py-3">{{ f.jumlah }}</td>
+                  <td class="px-4 py-3">{{ f.lokasi }}</td>
+                  <td class="px-4 py-3">{{ f.keterangan }}</td>
+                </tr>
+                <tr v-if="!filtered.length">
+                  <td colspan="4" class="px-4 py-6 text-center text-slate-500">Tidak ada fasilitas yang cocok.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="footer mt-4">Klik Jadwal untuk melihat ketersediaan per tanggal.</div>
+      </section>
+    </main>
+  </div>
+
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/auth-guard.js"></script>
+  <script src="assets/js/auth-ui.js"></script>
+
+  <script>
+    const { createApp, ref, computed, onMounted } = Vue;
+    createApp({
+      setup(){
+        const q = ref('');
+        const loc = ref('all');
+        const items = ref([]);
+        const locations = computed(()=>{
+          const set = new Set(items.value.map(it=>it.lokasi).filter(Boolean));
+          return Array.from(set);
+        });
+
+        async function loadFacilities(){
+          // Try API first
+          const API_PHP = 'http://localhost/peminjaman/api';
+          const API_NODE = 'http://localhost:4000/api';
+          let api = '';
+          try {
+            await fetch(API_PHP + '/'); api = API_PHP;
+          } catch {
+            try { await fetch(API_NODE + '/health'); api = API_NODE; } catch { api = ''; }
+          }
+          if (api) {
+            try {
+              const res = await fetch(api + '/facilities');
+              const data = await res.json();
+              const list = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : (Array.isArray(data?.facilities) ? data.facilities : []));
+              items.value = list.map(f=>({
+                name: f.name || '-',
+                jumlah: (typeof f.capacity==='number' || typeof f.capacity==='string') ? String(f.capacity) : '-',
+                lokasi: f.location || '-',
+                keterangan: f.description || (Array.isArray(f.features) ? f.features.join(', ') : (typeof f.features==='string' ? f.features : '')) || '-'
+              }));
+              return;
+            } catch (e) { console.warn('Facilities API error, fallback to localStorage:', e); }
+          }
+          // Fallback to localStorage
+          try {
+            const list = SPFK.getFacilities();
+            items.value = (Array.isArray(list)?list:[]).map(f=>({
+              name: f.name || '-',
+              jumlah: (typeof f.capacity==='number' || typeof f.capacity==='string') ? String(f.capacity) : '-',
+              lokasi: f.location || '-',
+              keterangan: f.description || (Array.isArray(f.features) ? f.features.join(', ') : (typeof f.features==='string' ? f.features : '')) || '-'
+            }));
+          } catch { items.value = []; }
+        }
+
+        onMounted(loadFacilities);
+
+        const filtered = computed(()=> items.value.filter(it=>{
+          const hit = (it.name + ' ' + (it.keterangan||'')).toLowerCase().includes(q.value.toLowerCase());
+          const matchLoc = loc.value==='all' || it.lokasi===loc.value;
+          return hit && matchLoc;
+        }));
+
+        return { q, loc, items, filtered, locations };
+      }
+    }).mount('#app-facilities');
+  </script>
+</body>
+</html>

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Form Peminjaman Online — Sistem Peminjaman</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body data-page="borrow" data-require-auth="true">
+  <div class="app">
+    <aside class="sidebar">
+      <a class="brand" href="index.html">
+        <div class="brand-logo" style="background: none; box-shadow: none;">
+          <img src="assets/img/logo kampus.png" alt="Logo Kampus" style="width: 48px; height: 48px; object-fit: contain;">
+        </div>
+        <h1>Sistem Peminjaman Fasilitas Kampus Universitas Tanri Abeng</h1>
+      </a>
+      <nav class="nav">
+        <a href="index.html">Beranda</a>
+        <a href="facilities.html">Daftar Fasilitas</a>
+        <a href="schedule.html">Jadwal & Ketersediaan</a>
+        <a href="borrow.html">Form Peminjaman</a>
+        <a href="confirmation.html">Konfirmasi & Dokumentasi</a>
+        <a href="admin.html">Admin Panel</a>
+      </nav>
+      <div class="muted">© 2025 Kampus • Versi demo</div>
+    </aside>
+
+    <header class="topbar">
+      <button class="btn hamburger" aria-label="Toggle menu">☰</button>
+      <div class="search">📝 Form Peminjaman</div>
+      <div class="actions" id="authActions"></div>
+    </header>
+
+    <main class="main container">
+      <div class="breadcrumbs"><a href="index.html">Beranda</a> / Form Peminjaman Online</div>
+      <h2 class="page-title">Form Peminjaman Online</h2>
+
+      <form class="card form" id="loan-form" style="padding:18px 20px">
+        <div class="field">
+          <label>Jenis Peminjaman</label>
+          <select class="input" name="borrowType" id="borrowType" required>
+            <option value="">-- Pilih Jenis Peminjaman --</option>
+            <option value="room">Ruangan</option>
+            <option value="equipment">Peralatan/Alat</option>
+          </select>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="field">
+            <label>Nama Peminjam</label>
+            <input class="input" name="borrowerName" required />
+          </div>
+          <div class="field">
+            <label>NIM/NIP</label>
+            <input class="input" name="identity" required />
+          </div>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="field">
+            <label>Prodi / Unit</label>
+            <input class="input" name="unit" required />
+          </div>
+          <div class="field" id="roomTypeField">
+            <label>Jenis Ruangan</label>
+            <select class="input" name="roomType" id="roomType">
+              <option value="">-- Pilih Jenis Ruangan --</option>
+              <option>Kelas</option>
+              <option>Ballroom</option>
+              <option>Rans Room</option>
+              <option>BUMR</option>
+              <option>LPPM</option>
+              <option>Perpustakaan</option>
+              <option>Ruang Podcast</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="field">
+            <label id="facilityLabel">Ruangan</label>
+            <select name="facilityId" id="facilityId" required></select>
+          </div>
+          <div class="field" id="quantityField" style="display:none;">
+            <label>Jumlah</label>
+            <input type="number" class="input" name="quantity" id="quantity" min="1" value="1" />
+            <small class="muted" id="stockInfo"></small>
+          </div>
+          <div class="field">
+            <label>Tanggal Penggunaan</label>
+            <input type="date" class="input" name="useDate" required />
+          </div>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="field">
+            <label>Waktu Mulai</label>
+            <select class="input" name="startTime" required>
+              <option value="">-- Pilih Jam Mulai --</option>
+              <option value="07:00">07:00</option>
+              <option value="07:30">07:30</option>
+              <option value="08:00">08:00</option>
+              <option value="08:30">08:30</option>
+              <option value="09:00">09:00</option>
+              <option value="09:30">09:30</option>
+              <option value="10:00">10:00</option>
+              <option value="10:30">10:30</option>
+              <option value="11:00">11:00</option>
+              <option value="11:30">11:30</option>
+              <option value="12:00">12:00</option>
+              <option value="12:30">12:30</option>
+              <option value="13:00">13:00</option>
+              <option value="13:30">13:30</option>
+              <option value="14:00">14:00</option>
+              <option value="14:30">14:30</option>
+              <option value="15:00">15:00</option>
+              <option value="15:30">15:30</option>
+              <option value="16:00">16:00</option>
+              <option value="16:30">16:30</option>
+              <option value="17:00">17:00</option>
+              <option value="17:30">17:30</option>
+              <option value="18:00">18:00</option>
+              <option value="18:30">18:30</option>
+              <option value="19:00">19:00</option>
+              <option value="19:30">19:30</option>
+              <option value="20:00">20:00</option>
+              <option value="20:30">20:30</option>
+              <option value="21:00">21:00</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Waktu Selesai</label>
+            <select class="input" name="endTime" required>
+              <option value="">-- Pilih Jam Selesai --</option>
+              <option value="07:00">07:00</option>
+              <option value="07:30">07:30</option>
+              <option value="08:00">08:00</option>
+              <option value="08:30">08:30</option>
+              <option value="09:00">09:00</option>
+              <option value="09:30">09:30</option>
+              <option value="10:00">10:00</option>
+              <option value="10:30">10:30</option>
+              <option value="11:00">11:00</option>
+              <option value="11:30">11:30</option>
+              <option value="12:00">12:00</option>
+              <option value="12:30">12:30</option>
+              <option value="13:00">13:00</option>
+              <option value="13:30">13:30</option>
+              <option value="14:00">14:00</option>
+              <option value="14:30">14:30</option>
+              <option value="15:00">15:00</option>
+              <option value="15:30">15:30</option>
+              <option value="16:00">16:00</option>
+              <option value="16:30">16:30</option>
+              <option value="17:00">17:00</option>
+              <option value="17:30">17:30</option>
+              <option value="18:00">18:00</option>
+              <option value="18:30">18:30</option>
+              <option value="19:00">19:00</option>
+              <option value="19:30">19:30</option>
+              <option value="20:00">20:00</option>
+              <option value="20:30">20:30</option>
+              <option value="21:00">21:00</option>
+              <option value="21:30">21:30</option>
+              <option value="22:00">22:00</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="card" style="border:1px dashed var(--border);">
+          <div class="card-header">Pilihan Fasilitas Tambahan</div>
+          <div class="card-body">
+            <div class="grid grid-3">
+              <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="fac_hdmi"/> HDMI <input type="number" name="qty_hdmi" class="input" style="width:90px" min="0" placeholder="0"/></label>
+              <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="fac_infocus"/> Infocus <input type="number" name="qty_infocus" class="input" style="width:90px" min="0" placeholder="0"/></label>
+              <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="fac_kursi"/> Kursi <input type="number" name="qty_kursi" class="input" style="width:90px" min="0" placeholder="0"/></label>
+              <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="fac_mic"/> Mic <input type="number" name="qty_mic" class="input" style="width:90px" min="0" placeholder="0"/></label>
+              <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="fac_meja"/> Meja Bundar <input type="number" name="qty_meja" class="input" style="width:90px" min="0" placeholder="0"/></label>
+              <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" name="fac_podium"/> Podium <input type="number" name="qty_podium" class="input" style="width:90px" min="0" placeholder="0"/></label>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="field">
+            <label>Upload Surat Izin / Proposal (opsional)</label>
+            <input type="file" class="input" name="document" />
+          </div>
+          <div class="field">
+            <label>Catatan Tambahan</label>
+            <textarea name="notes" rows="3" placeholder="Catatan penting untuk admin..."></textarea>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-primary" type="submit">Kirim Pengajuan</button>
+          <a class="btn" href="schedule.html">Cek Ketersediaan</a>
+        </div>
+        <div id="form-msg" class="muted"></div>
+      </form>
+
+      <div class="footer">Setelah dikirim, Anda akan diarahkan ke halaman konfirmasi.</div>
+    </main>
+  </div>
+
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/auth-guard.js"></script>
+  <script src="assets/js/auth-ui.js"></script>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const select = document.getElementById('facilityId');
+      const roomType = document.getElementById('roomType');
+      const borrowType = document.getElementById('borrowType');
+      const roomTypeField = document.getElementById('roomTypeField');
+      const quantityField = document.getElementById('quantityField');
+      const quantityInput = document.getElementById('quantity');
+      const stockInfo = document.getElementById('stockInfo');
+      const facilityLabel = document.getElementById('facilityLabel');
+      const facilitiesAll = SPFK.getFacilities();
+
+      // Handle borrow type change
+      borrowType.addEventListener('change', ()=>{
+        const type = borrowType.value;
+        if(type === 'room'){
+          roomTypeField.style.display = 'block';
+          quantityField.style.display = 'none';
+          facilityLabel.textContent = 'Ruangan';
+          roomType.required = true;
+          quantityInput.required = false;
+          populateRooms();
+        } else if(type === 'equipment'){
+          roomTypeField.style.display = 'none';
+          quantityField.style.display = 'block';
+          facilityLabel.textContent = 'Peralatan/Alat';
+          roomType.required = false;
+          quantityInput.required = true;
+          populateEquipment();
+        } else {
+          select.innerHTML = '<option value="">-- Pilih jenis peminjaman terlebih dahulu --</option>';
+        }
+      });
+
+      function populateRooms(){
+        const type = roomType.value;
+        const rooms = facilitiesAll.filter(f=> f.type!=="Peralatan" && (!type || f.type===type));
+        select.innerHTML = '<option value="">-- Pilih Ruangan --</option>' + rooms.map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
+      }
+
+      function populateEquipment(){
+        const equipment = facilitiesAll.filter(f=> f.type==="Peralatan");
+        select.innerHTML = '<option value="">-- Pilih Alat --</option>' + equipment.map(f=>`<option value="${f.id}">${f.name} (Stok: ${f.capacity || 1})</option>`).join('');
+      }
+
+      // Update stock info when equipment is selected
+      select.addEventListener('change', ()=>{
+        if(borrowType.value === 'equipment' && select.value){
+          const fac = facilitiesAll.find(f=>f.id===select.value);
+          if(fac){
+            const stock = fac.capacity || 1;
+            stockInfo.textContent = `Stok tersedia: ${stock} unit`;
+            quantityInput.max = stock;
+          }
+        }
+      });
+
+      roomType.addEventListener('change', populateRooms);
+
+      // Preselect from URL
+      const pre = getQuery('facility');
+      if(pre){
+        const fac = facilitiesAll.find(f=>f.id===pre);
+        if(fac){ roomType.value = fac.type; }
+      }
+      populateRooms();
+      if(pre){ select.value = pre; }
+
+      const form = document.getElementById('loan-form');
+      const msg = document.getElementById('form-msg');
+
+      form.addEventListener('submit', async (e)=>{
+        e.preventDefault(); msg.textContent=''; msg.style.color='';
+        
+        // Show loading
+        msg.textContent = '⏳ Mengirim pengajuan...';
+        msg.style.color = 'var(--accent)';
+        
+        const data = new FormData(form);
+        const borrowerName = data.get('borrowerName');
+        const identity = data.get('identity');
+        const unit = data.get('unit');
+        const facilityId = data.get('facilityId');
+        const fac = facilitiesAll.find(f=>f.id===facilityId);
+        const borrowTypeValue = data.get('borrowType');
+        const useDate = data.get('useDate');
+        const start = combineDateTime(useDate, data.get('startTime'));
+        const end = combineDateTime(useDate, data.get('endTime'));
+        
+        if(!borrowTypeValue){ msg.textContent = 'Pilih jenis peminjaman'; msg.style.color='var(--danger)'; return; }
+        if(!(start && end) || end <= start){ msg.textContent = 'Tanggal/jam tidak valid'; msg.style.color='var(--danger)'; return; }
+        
+        // H-7 validation
+        const today = startOfDay(new Date());
+        const minDate = new Date(today); minDate.setDate(minDate.getDate()+7);
+        if(start < minDate){ msg.textContent='Peminjaman minimal H-7 (7 hari) dari hari ini.'; msg.style.color='var(--danger)'; return; }
+        
+        // Different validation for room vs equipment
+        if(borrowTypeValue === 'room'){
+          // RUANGAN: Check overlap - tidak boleh ada yang booking pada waktu yang sama
+          const overlaps = SPFK.getBookings().some(b=>{
+            if(b.facilityId!==facilityId || b.status==='rejected') return false;
+            const sd = new Date(b.startDate), ed = new Date(b.endDate);
+            return (start <= ed && end >= sd);
+          });
+          if(overlaps){ msg.textContent='Ruangan sudah dipakai pada tanggal/waktu ini.'; msg.style.color='var(--danger)'; return; }
+        } else if(borrowTypeValue === 'equipment'){
+          // ALAT: Check stock availability
+          const quantity = parseInt(data.get('quantity')) || 1;
+          const stock = fac?.capacity || 1;
+          
+          // Hitung berapa alat yang sudah dipinjam pada waktu yang sama
+          const usedCount = SPFK.getBookings().reduce((sum, b)=>{
+            if(b.facilityId!==facilityId || b.status==='rejected') return sum;
+            const sd = new Date(b.startDate), ed = new Date(b.endDate);
+            const overlap = (start <= ed && end >= sd);
+            return sum + (overlap ? (b.quantity || 1) : 0);
+          }, 0);
+          
+          const available = stock - usedCount;
+          if(quantity > available){ 
+            msg.textContent = `Stok tidak cukup. Tersedia: ${available} unit, diminta: ${quantity} unit`; 
+            msg.style.color='var(--danger)'; 
+            return; 
+          }
+        }
+
+        // Upload file if exists
+        let uploadedFileName = '';
+        const fileInput = data.get('document');
+        if (fileInput && fileInput.size > 0) {
+          msg.textContent = '⏳ Mengupload file...';
+          try {
+            const formData = new FormData();
+            formData.append('document', fileInput);
+            
+            const uploadResponse = await fetch('http://localhost/peminjaman/api/upload.php', {
+              method: 'POST',
+              body: formData
+            });
+            
+            const uploadResult = await uploadResponse.json();
+            if (uploadResult.success) {
+              uploadedFileName = uploadResult.filename;
+              console.log('File uploaded:', uploadedFileName);
+            } else {
+              console.warn('File upload failed:', uploadResult.error);
+            }
+          } catch (err) {
+            console.error('File upload error:', err);
+            // Continue anyway
+          }
+        }
+
+        // Build Loan record
+        const loanId = SPFK.utils.uid('LN');
+        const loan = {
+          id: loanId,
+          borrowerName,
+          identity,
+          unit,
+          borrowType: borrowTypeValue,
+          roomType: data.get('roomType') || '',
+          facilityId,
+          facilityName: fac?.name || facilityId,
+          quantity: borrowTypeValue === 'equipment' ? (parseInt(data.get('quantity')) || 1) : 1,
+          useDate: startOfDay(start),
+          startDate: start,
+          endDate: end,
+          notes: data.get('notes') || '',
+          documentName: uploadedFileName || (fileInput && fileInput.name) || '',
+          status: 'pending',
+          createdAt: new Date()
+        };
+        SPFK.addLoan(loan);
+
+        // Loan_Facilities rows from checkboxes
+        const facItems = [
+          {key:'hdmi', label:'HDMI'},
+          {key:'infocus', label:'Infocus'},
+          {key:'kursi', label:'Kursi'},
+          {key:'mic', label:'Mic'},
+          {key:'meja', label:'Meja Bundar'},
+          {key:'podium', label:'Podium'}
+        ];
+        const selectedRows = [];
+        facItems.forEach(it=>{
+          if(data.get('fac_'+it.key)){
+            const qty = parseInt(data.get('qty_'+it.key) || '0', 10) || 0;
+            selectedRows.push({ id: SPFK.utils.uid('LNF'), loanId, item: it.label, quantity: qty });
+          }
+        });
+        if(selectedRows.length) SPFK.addLoanFacilities(selectedRows);
+
+        // Also add to BOOKINGS for calendar view
+        const code = SPFK.utils.uid('BK');
+        const booking = {
+          id: code,
+          facilityId,
+          facilityName: fac?.name || facilityId,
+          requesterName: borrowerName,
+          requesterEmail: '',
+          identity,
+          unit,
+          borrowType: borrowTypeValue,
+          quantity: borrowTypeValue === 'equipment' ? (parseInt(data.get('quantity')) || 1) : 1,
+          purpose: data.get('notes') || '',
+          startDate: start,
+          endDate: end,
+          startTime: data.get('startTime') || '',
+          endTime: data.get('endTime') || '',
+          documentName: uploadedFileName || '',
+          status: 'pending',
+          createdBy: 'form-online',
+          createdAt: new Date()
+        };
+        SPFK.addBooking(booking);
+        localStorage.setItem('spfk_last_booking', JSON.stringify(booking));
+
+        // SAVE TO DATABASE via PHP API
+        msg.textContent = '⏳ Menyimpan ke database...';
+        try {
+          const apiData = {
+            bookingId: code,
+            borrowerName,
+            identity,
+            unit,
+            facilityId: parseInt(facilityId),
+            facilityName: fac?.name || facilityId,
+            roomType: data.get('roomType'),
+            useDate: useDate,
+            startTime: data.get('startTime'),
+            endTime: data.get('endTime'),
+            notes: data.get('notes') || '',
+            documentName: uploadedFileName,
+            facilities: selectedRows.map(f => ({item: f.item, quantity: f.quantity}))
+          };
+
+          const response = await fetch('http://localhost/peminjaman/api/bookings', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(apiData)
+          });
+
+          const result = await response.json();
+          console.log('Database save result:', result);
+          
+          if (!result.success) {
+            console.error('Failed to save to database:', result);
+          }
+        } catch (err) {
+          console.error('Error saving to database:', err);
+          // Continue anyway, data saved to localStorage
+        }
+
+        msg.textContent='✅ Pengajuan berhasil dikirim.'; msg.style.color='var(--accent)';
+        setTimeout(()=>{ location.href = 'confirmation.html?id='+code }, 700);
+      });
+    });
+  </script>
+</body>
+</html>

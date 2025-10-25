@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jadwal & Ketersediaan — Sistem Peminjaman</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>[v-cloak]{display:none}</style>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: { colors: { campus: { primary: '#4F8EF7' }}}}};
+  </script>
+  <!-- Vue 3 -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+</head>
+<body data-page="schedule">
+  <div class="app">
+    <aside class="sidebar">
+      <a class="brand" href="index.html">
+        <div class="brand-logo" style="background: none; box-shadow: none;">
+          <img src="assets/img/logo kampus.png" alt="Logo Kampus" style="width: 48px !important; height: 48px !important; object-fit: contain;">
+        </div>
+        <h1>Sistem Peminjaman Fasilitas Kampus Universitas Tanri Abeng</h1>
+      </a>
+      <nav class="nav">
+        <a href="index.html">Beranda</a>
+        <a href="facilities.html">Daftar Fasilitas</a>
+        <a href="schedule.html">Jadwal & Ketersediaan</a>
+        <a href="borrow.html">Form Peminjaman</a>
+        <a href="confirmation.html">Konfirmasi & Dokumentasi</a>
+        <a href="admin.html">Admin Panel</a>
+      </nav>
+      <div class="muted">© 2025 Kampus • Versi demo</div>
+    </aside>
+
+    <header class="topbar">
+      <button class="btn hamburger" aria-label="Toggle menu">☰</button>
+      <div class="search">🔎 <input type="search" id="search" placeholder="Cari peminjaman..." /></div>
+      <div class="actions" id="authActions"></div>
+    </header>
+
+    <main class="main container">
+      <div class="breadcrumbs"><a href="index.html">Beranda</a> / Jadwal & Ketersediaan</div>
+      <h2 class="page-title">Jadwal & Ketersediaan Ruangan</h2>
+
+      <!-- Vue App Root -->
+  <section id="app-schedule" class="mt-2" v-cloak>
+        <!-- Controls -->
+        <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-4 flex flex-col gap-3">
+          <div class="flex flex-col md:flex-row gap-3 items-center">
+            <div class="flex items-center gap-2 w-full md:w-auto">
+              <span class="text-sm text-slate-600">Fasilitas</span>
+              <select v-model="facilityId" class="rounded-lg border-gray-200 focus:ring-4 focus:ring-blue-100 focus:border-campus-primary w-full md:w-80">
+                <option value="all">Semua</option>
+                <option v-for="f in facilities" :key="f.id" :value="f.id">{{ f.name }}</option>
+              </select>
+            </div>
+            <div class="flex items-center gap-2">
+              <button @click="prev" class="px-3 py-1.5 border rounded-lg">◀</button>
+              <div class="font-semibold">{{ monthLabel }}</div>
+              <button @click="next" class="px-3 py-1.5 border rounded-lg">▶</button>
+            </div>
+            <div class="flex items-center gap-2">
+              <button @click="view='month'" :class="['px-3 py-1.5 rounded-lg border', view==='month' ? 'bg-campus-primary text-white border-campus-primary' : '']">Bulan</button>
+              <button @click="view='week'" :class="['px-3 py-1.5 rounded-lg border', view==='week' ? 'bg-campus-primary text-white border-campus-primary' : '']">Minggu</button>
+            </div>
+            <a :href="borrowLink" class="ml-auto px-4 py-2 rounded-lg bg-campus-primary text-white hover:brightness-105">Ajukan Peminjaman</a>
+          </div>
+          <div class="text-xs text-slate-500 flex items-center gap-3">
+            <span class="inline-flex items-center gap-1"><span class="inline-block w-3 h-3 rounded bg-green-200 border border-green-400"></span> Tersedia</span>
+            <span class="inline-flex items-center gap-1"><span class="inline-block w-3 h-3 rounded bg-red-200 border border-red-400"></span> Terpakai</span>
+          </div>
+        </div>
+
+        <!-- Calendar Month View -->
+        <div v-if="view==='month'" class="mt-4 bg-white border border-gray-200 rounded-xl shadow-sm">
+          <div class="grid grid-cols-7 text-xs text-slate-500 px-4 pt-3">
+            <div v-for="d in dayNames" :key="d" class="text-center py-1">{{ d }}</div>
+          </div>
+          <div class="grid grid-cols-7 gap-2 p-3">
+            <div v-for="(d,idx) in monthDays" :key="idx" @click="!isPast(d.date) && selectDate(d.date)"
+                 :class="['min-h-[90px] p-2 rounded-lg border', d.muted ? 'opacity-50' : '', isPast(d.date) ? 'bg-gray-100 border-gray-300 cursor-not-allowed opacity-60' : (busy(d.date) ? 'bg-red-50 border-red-200 cursor-pointer' : 'bg-green-50 border-green-200 cursor-pointer')]">
+              <div class="text-sm font-semibold" :class="{'text-campus-primary': isToday(d.date), 'text-gray-400': isPast(d.date)}">{{ d.date.getDate() }}</div>
+              <div v-if="!isPast(d.date)" class="text-[11px] mt-1 inline-block px-2 py-0.5 rounded-full"
+                   :class="busy(d.date) ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'">
+                {{ busy(d.date) ? countOn(d.date)+ ' terpakai' : 'Tersedia' }}
+              </div>
+              <div v-else class="text-[11px] mt-1 inline-block px-2 py-0.5 rounded-full bg-gray-200 text-gray-500">
+                Terlewat
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Calendar Week View -->
+        <div v-else class="mt-4 bg-white border border-gray-200 rounded-xl shadow-sm">
+          <div class="grid grid-cols-7 text-xs text-slate-500 px-4 pt-3">
+            <div v-for="d in dayNames" :key="d" class="text-center py-1">{{ d }}</div>
+          </div>
+          <div class="grid grid-cols-7 gap-2 p-3">
+            <div v-for="(d,idx) in weekDays" :key="idx" @click="!isPast(d) && selectDate(d)"
+                 :class="['min-h-[120px] p-2 rounded-lg border', isPast(d) ? 'bg-gray-100 border-gray-300 cursor-not-allowed opacity-60' : (busy(d) ? 'bg-red-50 border-red-200 cursor-pointer' : 'bg-green-50 border-green-200 cursor-pointer')]">
+              <div class="text-sm font-semibold" :class="{'text-campus-primary': isToday(d), 'text-gray-400': isPast(d)}">{{ d.getDate() }}</div>
+              <div v-if="!isPast(d)" class="mt-2 space-y-1">
+                <div v-for="b in eventsOn(d)" :key="b.id" class="text-[11px] px-2 py-1 rounded bg-red-100 text-red-700">{{ b.purpose || b.title }} ({{ timeRange(b) }})</div>
+                <div v-if="!eventsOn(d).length" class="text-[11px] px-2 py-1 rounded bg-green-100 text-green-700 inline-block">Tersedia</div>
+              </div>
+              <div v-else class="mt-2">
+                <div class="text-[11px] px-2 py-1 rounded bg-gray-200 text-gray-500 inline-block">Terlewat</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detail -->
+        <div class="mt-4 bg-white border border-gray-200 rounded-xl shadow-sm">
+          <div class="p-4 border-b text-sm font-semibold">Detail — {{ selectedLabel }}</div>
+          <div class="p-4">
+            <div v-if="eventsOn(selectedDate).length" class="space-y-3">
+              <div v-for="b in eventsOn(selectedDate)" :key="b.id" class="border rounded-lg p-3 bg-amber-50 border-amber-200">
+                <div class="font-semibold">{{ facName(b.facilityId) }}</div>
+                <div class="text-xs text-slate-600">{{ timeRange(b) }} • Penanggung jawab: {{ b.requesterName }}</div>
+                <div class="text-xs text-slate-600">Prodi/Kegiatan: {{ b.purpose || '-' }}</div>
+              </div>
+            </div>
+            <div v-else class="text-slate-600 text-sm">Tidak ada peminjaman pada tanggal ini.</div>
+            <div class="mt-4">
+              <a v-if="!isPast(selectedDate)" :href="borrowLink" class="px-4 py-2 rounded-lg bg-campus-primary text-white hover:brightness-105 inline-block">Ajukan Peminjaman</a>
+              <button v-else disabled class="px-4 py-2 rounded-lg bg-gray-300 text-gray-500 cursor-not-allowed inline-block">Tanggal Sudah Terlewat</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="footer mt-4">Klik tanggal untuk melihat detail acara pada hari tersebut.</div>
+      </section>
+    </main>
+  </div>
+
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/auth-guard.js"></script>
+  <script src="assets/js/auth-ui.js"></script>
+  <script src="assets/js/calendar.js"></script>
+
+</body>
+
+</html>

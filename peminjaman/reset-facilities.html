@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset Facilities Data</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #4F8EF7;
+      margin-bottom: 20px;
+    }
+    .btn {
+      background: #4F8EF7;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      font-size: 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 10px 5px;
+      transition: background 0.3s;
+    }
+    .btn:hover {
+      background: #3d7ad4;
+    }
+    .btn-danger {
+      background: #dc3545;
+    }
+    .btn-danger:hover {
+      background: #c82333;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 5px;
+      display: none;
+    }
+    .result.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .result.info {
+      background: #d1ecf1;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+    .facility-list {
+      margin-top: 20px;
+      max-height: 400px;
+      overflow-y: auto;
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 5px;
+    }
+    .facility-item {
+      padding: 8px;
+      margin: 5px 0;
+      background: white;
+      border-left: 3px solid #4F8EF7;
+      border-radius: 3px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      background: #4F8EF7;
+      color: white;
+      border-radius: 3px;
+      font-size: 12px;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🔄 Reset Data Fasilitas</h1>
+    <p>Tool ini akan menghapus data fasilitas lama dari localStorage dan memuat ulang 14 ruangan kelas baru.</p>
+    
+    <div>
+      <button class="btn" onclick="showCurrentData()">📋 Lihat Data Saat Ini</button>
+      <button class="btn btn-danger" onclick="resetFacilities()">🔄 Reset & Load 14 Ruangan Baru</button>
+      <button class="btn" onclick="goToBorrowForm()">➡️ Buka Form Peminjaman</button>
+    </div>
+
+    <div id="result" class="result"></div>
+    <div id="facilityList" class="facility-list" style="display:none;"></div>
+  </div>
+
+  <script src="assets/js/app.js"></script>
+  <script>
+    function showResult(message, type = 'success') {
+      const resultDiv = document.getElementById('result');
+      resultDiv.textContent = message;
+      resultDiv.className = `result ${type}`;
+      resultDiv.style.display = 'block';
+    }
+
+    function showCurrentData() {
+      const facilities = SPFK.getFacilities();
+      const listDiv = document.getElementById('facilityList');
+      
+      if (facilities.length === 0) {
+        showResult('Tidak ada data fasilitas. Klik tombol Reset untuk load data baru.', 'info');
+        listDiv.style.display = 'none';
+        return;
+      }
+
+      const kelasList = facilities.filter(f => f.type === 'Kelas');
+      const otherList = facilities.filter(f => f.type !== 'Kelas');
+
+      let html = '<h3>📚 Ruangan Kelas (' + kelasList.length + ')</h3>';
+      kelasList.forEach(f => {
+        html += `<div class="facility-item">
+          <strong>${f.name}</strong> 
+          <span class="badge">${f.type}</span>
+          <br><small>📍 ${f.location} • 👥 ${f.capacity} orang</small>
+        </div>`;
+      });
+
+      html += '<h3 style="margin-top:20px;">🏢 Fasilitas Lainnya (' + otherList.length + ')</h3>';
+      otherList.forEach(f => {
+        html += `<div class="facility-item">
+          <strong>${f.name}</strong> 
+          <span class="badge">${f.type}</span>
+          <br><small>📍 ${f.location} • 👥 ${f.capacity} orang</small>
+        </div>`;
+      });
+
+      listDiv.innerHTML = html;
+      listDiv.style.display = 'block';
+      showResult(`Total: ${facilities.length} fasilitas (${kelasList.length} ruangan kelas)`, 'info');
+    }
+
+    function resetFacilities() {
+      if (!confirm('⚠️ Yakin ingin menghapus data fasilitas lama dan load yang baru?\n\nData peminjaman yang ada akan tetap aman.')) {
+        return;
+      }
+
+      // Hapus data facilities lama
+      localStorage.removeItem('spfk_facilities');
+      
+      // Reload halaman untuk trigger seed data baru dari app.js
+      showResult('✅ Data berhasil di-reset! Halaman akan reload dalam 2 detik...', 'success');
+      
+      setTimeout(() => {
+        location.reload();
+      }, 2000);
+    }
+
+    function goToBorrowForm() {
+      location.href = 'borrow.html';
+    }
+
+    // Auto-show data saat load
+    window.addEventListener('DOMContentLoaded', () => {
+      showCurrentData();
+    });
+  </script>
+</body>
+</html>

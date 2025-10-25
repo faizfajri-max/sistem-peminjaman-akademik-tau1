@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sistem Peminjaman Fasilitas Kampus — Beranda</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body data-page="home" data-require-auth="true">
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <a class="brand" href="index.html">
+        <div class="brand-logo" style="background: none; box-shadow: none;">
+          <img src="assets/img/logo kampus.png" alt="Logo Kampus" style="width: 48px; height: 48px; object-fit: contain;">
+        </div>
+        <h1>Sistem Peminjaman Fasilitas Kampus Universitas Tanri Abeng</h1>
+      </a>
+      <nav class="nav">
+        <a href="index.html">Beranda</a>
+        <a href="facilities.html">Daftar Fasilitas</a>
+        <a href="schedule.html">Jadwal & Ketersediaan</a>
+        <a href="borrow.html">Form Peminjaman</a>
+        <a href="confirmation.html">Konfirmasi & Dokumentasi</a>
+        <a href="admin.html">Admin Panel</a>
+      </nav>
+      <div class="muted">© 2025 Kampus • Versi demo</div>
+    </aside>
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <button class="btn hamburger" aria-label="Toggle menu">☰</button>
+      <div class="search">
+        🔎 <input type="search" placeholder="Cari fasilitas, tanggal, atau pemohon..." />
+      </div>
+      <div class="actions" id="authActions"></div>
+    </header>
+
+    <!-- Main -->
+    <main class="main container">
+      <div class="breadcrumbs">Beranda</div>
+      <h2 class="page-title">Selamat datang 👋</h2>
+
+      <section class="hero">
+        <div>
+          <h2>Sewa Ruang & Peralatan Kampus jadi mudah</h2>
+          <p class="muted">Kelola peminjaman kelas, ballroom, Rans Room, BUMR, LPPM, perpustakaan, hingga studio podcast dalam satu tempat.</p>
+          <div style="display:flex;gap:10px;margin-top:12px">
+            <a href="borrow.html" class="btn btn-primary">Ajukan Peminjaman</a>
+            <a href="schedule.html" class="btn">Lihat Ketersediaan</a>
+          </div>
+        </div>
+        <div class="kpi">
+          <div class="kpi-card">
+            <div class="kpi-title">Peminjaman bulan ini</div>
+            <div class="kpi-value" id="kpi-this-month">0</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-title">Disetujui</div>
+            <div class="kpi-value" id="kpi-approved">0</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-title">Menunggu</div>
+            <div class="kpi-value" id="kpi-pending">0</div>
+          </div>
+        </div>
+      </section>
+
+      <section style="margin-top:20px" class="grid grid-3">
+        <div class="card">
+          <div class="card-header">Mulai cepat</div>
+          <div class="card-body">
+            <div class="grid grid-2">
+              <a class="btn" href="facilities.html">📋 Lihat fasilitas</a>
+              <a class="btn" href="schedule.html">🗓️ Cek kalender</a>
+              <a class="btn" href="borrow.html">📝 Ajukan peminjaman</a>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">Panduan singkat</div>
+          <div class="card-body">
+            <ol>
+              <li>Pilih fasilitas dari daftar.</li>
+              <li>Cek ketersediaan pada kalender.</li>
+              <li>Isi form peminjaman dan unggah dokumen pendukung (opsional).</li>
+              <li>Tunggu persetujuan dari admin.</li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">Status terbaru</div>
+          <div class="card-body" id="recent-status">
+            <div class="muted">Belum ada data.</div>
+          </div>
+        </div>
+      </section>
+
+      <div class="footer">Sistem Peminjaman Fasilitas Kampus • Demo front-end (HTML/CSS/JS)</div>
+    </main>
+  </div>
+
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/auth-guard.js"></script>
+  <script src="assets/js/auth-ui.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', ()=>{
+      // KPI stats
+      const bookings = SPFK.getBookings();
+      const now = new Date();
+      const thisMonth = bookings.filter(b=> new Date(b.startDate).getMonth()===now.getMonth() && new Date(b.startDate).getFullYear()===now.getFullYear());
+      document.getElementById('kpi-this-month').textContent = thisMonth.length;
+      document.getElementById('kpi-approved').textContent = bookings.filter(b=>b.status==='approved').length;
+      document.getElementById('kpi-pending').textContent = bookings.filter(b=>b.status==='pending').length;
+
+      const recent = bookings.slice(-5).reverse();
+      const holder = document.getElementById('recent-status');
+      if(recent.length){
+        holder.innerHTML = recent.map(b=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--border)">
+          <div>
+            <div style="font-weight:600">${b.facilityName}</div>
+            <div class="muted" style="font-size:12px">${SPFK.utils.fmtDate(b.startDate)} • ${b.requesterName}</div>
+          </div>
+          <span class="badge ${b.status==='approved'?'success':(b.status==='pending'?'warn':'danger')}">${b.status}</span>
+        </div>`).join('');
+      }
+    });
+  </script>
+</body>
+</html>

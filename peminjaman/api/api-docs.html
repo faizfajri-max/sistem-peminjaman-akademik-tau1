@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backend PHP API - Sistem Peminjaman Fasilitas</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.2em;
+        }
+        .status {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #10b981;
+            color: white;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-bottom: 30px;
+        }
+        .status.error {
+            background: #ef4444;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        .card {
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 24px;
+            transition: all 0.3s;
+        }
+        .card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+        .card h3 {
+            color: #667eea;
+            margin-bottom: 12px;
+            font-size: 1.3em;
+        }
+        .card p {
+            color: #666;
+            margin-bottom: 16px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #5568d3;
+        }
+        .btn-secondary {
+            background: #6b7280;
+        }
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        .endpoint {
+            background: #f3f4f6;
+            padding: 12px;
+            border-radius: 6px;
+            margin: 8px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        .method {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin-right: 8px;
+            font-size: 0.8em;
+        }
+        .get { background: #10b981; color: white; }
+        .post { background: #3b82f6; color: white; }
+        .put { background: #f59e0b; color: white; }
+        .patch { background: #8b5cf6; color: white; }
+        .delete { background: #ef4444; color: white; }
+        .docs {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 6px;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e5e7eb;
+            text-align: center;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Backend PHP API</h1>
+        <p class="subtitle">Sistem Peminjaman Fasilitas Kampus</p>
+        
+        <div id="status" class="status">Checking API...</div>
+
+        <div class="docs">
+            <h3>📚 Dokumentasi Lengkap</h3>
+            <p>Baca dokumentasi berikut untuk memulai:</p>
+            <div style="margin-top: 16px;">
+                <a href="api/QUICKSTART.md" class="btn" download>⚡ Quick Start (5 menit)</a>
+                <a href="api/SETUP_GUIDE.md" class="btn btn-secondary" download>📖 Setup Guide Lengkap</a>
+                <a href="api/README.md" class="btn btn-secondary" download>📄 API Documentation</a>
+                <a href="api/INSTALLATION_CHECKLIST.md" class="btn btn-secondary" download>✅ Checklist</a>
+            </div>
+        </div>
+
+        <h2>🎯 Fitur Utama</h2>
+        <div class="grid">
+            <div class="card">
+                <h3>🔐 Authentication</h3>
+                <p>JWT-based authentication dengan role admin, staff, dan user</p>
+                <a href="#auth" class="btn">Lihat Endpoints</a>
+            </div>
+            <div class="card">
+                <h3>🏢 Facilities</h3>
+                <p>CRUD lengkap untuk manajemen fasilitas kampus</p>
+                <a href="#facilities" class="btn">Lihat Endpoints</a>
+            </div>
+            <div class="card">
+                <h3>📝 Loans</h3>
+                <p>Sistem peminjaman dengan approval workflow</p>
+                <a href="#loans" class="btn">Lihat Endpoints</a>
+            </div>
+            <div class="card">
+                <h3>💬 Comments</h3>
+                <p>Dokumentasi pengembalian dengan upload foto</p>
+                <a href="#comments" class="btn">Lihat Endpoints</a>
+            </div>
+            <div class="card">
+                <h3>📊 Reports</h3>
+                <p>Statistik dan laporan lengkap</p>
+                <a href="#reports" class="btn">Lihat Endpoints</a>
+            </div>
+            <div class="card">
+                <h3>🧪 Testing</h3>
+                <p>Postman collection siap pakai</p>
+                <a href="api/Postman_Collection.json" class="btn" download>Download Collection</a>
+            </div>
+        </div>
+
+        <h2 id="auth">🔐 Authentication Endpoints</h2>
+        <div class="endpoint">
+            <span class="method post">POST</span> /api/auth/register - Register user baru
+        </div>
+        <div class="endpoint">
+            <span class="method post">POST</span> /api/auth/login - Login dan dapat JWT token
+        </div>
+        <div class="endpoint">
+            <span class="method get">GET</span> /api/auth/me - Info user saat ini (requires auth)
+        </div>
+
+        <h2 id="facilities">🏢 Facilities Endpoints</h2>
+        <div class="endpoint">
+            <span class="method get">GET</span> /api/facilities - List semua fasilitas (public)
+        </div>
+        <div class="endpoint">
+            <span class="method get">GET</span> /api/facilities/:id - Detail fasilitas
+        </div>
+        <div class="endpoint">
+            <span class="method post">POST</span> /api/facilities - Tambah fasilitas (admin only)
+        </div>
+        <div class="endpoint">
+            <span class="method put">PUT</span> /api/facilities/:id - Update fasilitas (admin only)
+        </div>
+        <div class="endpoint">
+            <span class="method delete">DELETE</span> /api/facilities/:id - Hapus fasilitas (admin only)
+        </div>
+
+        <h2 id="loans">📝 Loans Endpoints</h2>
+        <div class="endpoint">
+            <span class="method get">GET</span> /api/loans - List peminjaman
+        </div>
+        <div class="endpoint">
+            <span class="method get">GET</span> /api/loans/:id - Detail peminjaman
+        </div>
+        <div class="endpoint">
+            <span class="method post">POST</span> /api/loans - Buat peminjaman (requires auth)
+        </div>
+        <div class="endpoint">
+            <span class="method patch">PATCH</span> /api/loans/:id/status - Update status (admin/staff)
+        </div>
+        <div class="endpoint">
+            <span class="method delete">DELETE</span> /api/loans/:id - Hapus peminjaman
+        </div>
+
+        <h2 id="comments">💬 Comments Endpoints</h2>
+        <div class="endpoint">
+            <span class="method get">GET</span> /api/comments/:loanId - List komentar
+        </div>
+        <div class="endpoint">
+            <span class="method post">POST</span> /api/comments/:loanId - Tambah komentar + foto (requires auth)
+        </div>
+        <div class="endpoint">
+            <span class="method patch">PATCH</span> /api/comments/:loanId/mark-returned - Tandai selesai (admin/staff)
+        </div>
+        <div class="endpoint">
+            <span class="method delete">DELETE</span> /api/comments/:commentId - Hapus komentar
+        </div>
+
+        <h2 id="reports">📊 Reports Endpoints</h2>
+        <div class="endpoint">
+            <span class="method get">GET</span> /api/reports/summary - Dashboard statistik (admin/staff)
+        </div>
+        <div class="endpoint">
+            <span class="method get">GET</span> /api/reports/user-stats - Statistik per user
+        </div>
+        <div class="endpoint">
+            <span class="method get">GET</span> /api/reports/facility-usage - Laporan penggunaan fasilitas
+        </div>
+
+        <h2>🔑 Akun Default</h2>
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <tr style="background: #f3f4f6;">
+                <th style="padding: 12px; text-align: left; border: 1px solid #e5e7eb;">Role</th>
+                <th style="padding: 12px; text-align: left; border: 1px solid #e5e7eb;">Email</th>
+                <th style="padding: 12px; text-align: left; border: 1px solid #e5e7eb;">Password</th>
+            </tr>
+            <tr>
+                <td style="padding: 12px; border: 1px solid #e5e7eb;">Admin</td>
+                <td style="padding: 12px; border: 1px solid #e5e7eb;">admin@kampus.ac.id</td>
+                <td style="padding: 12px; border: 1px solid #e5e7eb;">admin123</td>
+            </tr>
+            <tr>
+                <td style="padding: 12px; border: 1px solid #e5e7eb;">Staff</td>
+                <td style="padding: 12px; border: 1px solid #e5e7eb;">staff@kampus.ac.id</td>
+                <td style="padding: 12px; border: 1px solid #e5e7eb;">staff123</td>
+            </tr>
+            <tr>
+                <td style="padding: 12px; border: 1px solid #e5e7eb;">User</td>
+                <td style="padding: 12px; border: 1px solid #e5e7eb;">user@kampus.ac.id</td>
+                <td style="padding: 12px; border: 1px solid #e5e7eb;">user123</td>
+            </tr>
+        </table>
+
+        <div class="footer">
+            <p><strong>Backend PHP API v1.0.0</strong></p>
+            <p>Sistem Peminjaman Fasilitas Kampus • MIT License</p>
+            <p style="margin-top: 10px;">
+                <a href="auth.html" class="btn">🔑 Login Frontend</a>
+                <a href="index.html" class="btn btn-secondary">🏠 Homepage</a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Check API Status
+        fetch('/peminjaman/api/')
+            .then(res => res.json())
+            .then(data => {
+                const statusEl = document.getElementById('status');
+                if (data.success) {
+                    statusEl.textContent = '✅ API Running - ' + data.message;
+                    statusEl.className = 'status';
+                } else {
+                    statusEl.textContent = '❌ API Error';
+                    statusEl.className = 'status error';
+                }
+            })
+            .catch(err => {
+                const statusEl = document.getElementById('status');
+                statusEl.textContent = '❌ API Not Running - Check XAMPP';
+                statusEl.className = 'status error';
+            });
+    </script>
+</body>
+</html>

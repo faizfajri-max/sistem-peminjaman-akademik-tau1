@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register - Sistem Peminjaman Fasilitas</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background-image: 
+        linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%),
+        url('https://kelaskaryawan.com/wp-content/uploads/2023/11/tanry-abeng-678x381.jpg');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+    .register-container {
+      width: 100%;
+      max-width: 400px;
+      padding: 15px;
+    }
+    .register-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      padding: 24px 28px;
+    }
+    .register-header {
+      text-align: center;
+      margin-bottom: 18px;
+    }
+    .register-logo {
+      font-size: 64px;
+      margin-bottom: 6px;
+    }
+    .register-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #333;
+      margin: 0 0 4px 0;
+    }
+    .register-subtitle {
+      color: #666;
+      font-size: 12px;
+      margin: 0;
+    }
+    .form-group {
+      margin-bottom: 12px;
+    }
+    .form-label {
+      display: block;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 4px;
+      font-size: 12px;
+    }
+    .form-input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 6px;
+      font-size: 13px;
+      transition: border-color 0.3s;
+      box-sizing: border-box;
+    }
+    .form-input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    .form-hint {
+      font-size: 10px;
+      color: #666;
+      margin-top: 2px;
+    }
+    .btn-register {
+      width: 100%;
+      padding: 9px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin-top: 2px;
+    }
+    .btn-register:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    }
+    .btn-register:active {
+      transform: translateY(0);
+    }
+    .register-footer {
+      text-align: center;
+      margin-top: 12px;
+      color: #666;
+      font-size: 12px;
+    }
+    .register-footer a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .register-footer a:hover {
+      text-decoration: underline;
+    }
+    .message {
+      padding: 8px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      font-size: 12px;
+      display: none;
+    }
+    .message.error {
+      background: #fee;
+      color: #c33;
+      border: 1px solid #fcc;
+    }
+    .message.success {
+      background: #efe;
+      color: #3c3;
+      border: 1px solid #cfc;
+    }
+    .back-link {
+      text-align: center;
+      margin-top: 12px;
+    }
+    .back-link a {
+      color: white;
+      text-decoration: none;
+      font-size: 12px;
+      opacity: 0.9;
+    }
+    .back-link a:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="register-container">
+    <div class="register-card">
+      <div class="register-header">
+        <div class="register-logo">
+          <img src="assets/img/logo kampus.png" alt="Logo Kampus" style="width: 60px; height: 60px; object-fit: contain;">
+        </div>
+        <h1 class="register-title">Daftar Akun Baru</h1>
+        <p class="register-subtitle">Sistem Peminjaman Fasilitas Kampus</p>
+      </div>
+
+      <div id="message" class="message"></div>
+
+      <form id="form-register">
+        <div class="form-group">
+          <label class="form-label">Nama Lengkap</label>
+          <input type="text" class="form-input" name="name" 
+                 placeholder="Nama lengkap Anda" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-input" name="email" 
+                 pattern=".*@(student|admin|staff)\.tau\.ac\.id$"
+                 placeholder="nama@student.tau.ac.id" required>
+          <div class="form-hint">Domain: @student.tau.ac.id, @admin.tau.ac.id, atau @staff.tau.ac.id</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input type="password" class="form-input" name="password" 
+                 minlength="6" placeholder="Minimal 6 karakter" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Konfirmasi Password</label>
+          <input type="password" class="form-input" name="password2" 
+                 minlength="6" placeholder="Ulangi password" required>
+        </div>
+
+        <button type="submit" class="btn-register">Daftar Sekarang</button>
+      </form>
+
+      <div class="register-footer">
+        Sudah punya akun? <a href="login.html">Login di sini</a>
+      </div>
+    </div>
+
+    <div class="back-link">
+      <a href="welcome.html">← Kembali ke halaman utama</a>
+    </div>
+  </div>
+
+  <script src="assets/js/app.js"></script>
+  <script>
+    const API_PHP = 'http://localhost/peminjaman/api';
+    const API_NODE = 'http://localhost:4000/api';
+    let API = API_PHP;
+    let useApi = false;
+    
+    // Get return URL from query string
+    const urlParams = new URLSearchParams(window.location.search);
+    const returnUrl = urlParams.get('return') || 'index.html';
+
+    // Check API availability
+    (async ()=>{
+      try {
+        await fetch(API_PHP+'/'); 
+        useApi = true; 
+        API = API_PHP;
+      } catch {
+        try {
+          await fetch(API_NODE+'/health');
+          useApi = true;
+          API = API_NODE;
+        } catch {
+          useApi = false;
+        }
+      }
+    })();
+
+    // Email domain validation
+    function validateEmail(email) {
+      const allowedDomains = ['@student.tau.ac.id', '@admin.tau.ac.id', '@staff.tau.ac.id'];
+      return allowedDomains.some(domain => email.endsWith(domain));
+    }
+
+    function showMessage(text, type = 'error') {
+      const msg = document.getElementById('message');
+      msg.textContent = text;
+      msg.className = 'message ' + type;
+      msg.style.display = 'block';
+    }
+
+    function hideMessage() {
+      document.getElementById('message').style.display = 'none';
+    }
+
+    document.getElementById('form-register').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideMessage();
+      
+      const formData = new FormData(e.target);
+      const name = formData.get('name');
+      const email = formData.get('email');
+      const password = formData.get('password');
+      const password2 = formData.get('password2');
+      
+      // Validate email domain
+      if (!validateEmail(email)) {
+        showMessage('Hanya email @student.tau.ac.id, @admin.tau.ac.id, atau @staff.tau.ac.id yang diperbolehkan');
+        return;
+      }
+      
+      // Check password match
+      if (password !== password2) {
+        showMessage('Password tidak sama');
+        return;
+      }
+      
+      if (useApi) {
+        try {
+          const res = await fetch(API + '/auth/register', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ name, email, password })
+          });
+          
+          if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.error || 'Registrasi gagal');
+          }
+          
+          const { user, token } = await res.json();
+          localStorage.setItem('spfk_auth_token', token);
+          localStorage.setItem('spfk_auth_user', JSON.stringify(user));
+          
+          showMessage('Registrasi berhasil! Mengalihkan...', 'success');
+          setTimeout(() => {
+            window.location.href = decodeURIComponent(returnUrl);
+          }, 1000);
+          
+        } catch (err) {
+          showMessage(err.message);
+        }
+      } else {
+        try {
+          const user = SPFK.users.register(name, email, password);
+          localStorage.setItem('spfk_auth_user', JSON.stringify(user));
+          
+          showMessage('Registrasi berhasil! Mengalihkan...', 'success');
+          setTimeout(() => {
+            window.location.href = decodeURIComponent(returnUrl);
+          }, 1000);
+          
+        } catch (err) {
+          showMessage(err.message);
+        }
+      }
+    });
+  </script>
+</body>
+</html>

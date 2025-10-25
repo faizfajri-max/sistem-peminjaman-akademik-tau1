@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login / Register — Sistem Peminjaman</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body data-page="auth">
+  <div class="app">
+    <aside class="sidebar">
+      <a class="brand" href="index.html">
+        <div class="brand-logo" style="background: none; box-shadow: none;">
+          <img src="assets/img/logo kampus.png" alt="Logo Kampus" style="width: 48px; height: 48px; object-fit: contain;">
+        </div>
+        <h1>Sistem Peminjaman Fasilitas Kampus Universitas Tanri Abeng</h1>
+      </a>
+      <nav class="nav">
+        <a href="index.html">Beranda</a>
+        <a href="facilities.html">Daftar Fasilitas</a>
+        <a href="schedule.html">Jadwal & Ketersediaan</a>
+        <a href="borrow.html">Form Peminjaman</a>
+        <a href="confirmation.html">Konfirmasi & Dokumentasi</a>
+        <a href="admin.html">dmin Panel</a>
+      </nav>
+      <div class="muted">© 2025 Kampus • Versi demo</div>
+    </aside>
+
+    <header class="topbar">
+      <button class="btn hamburger" aria-label="Toggle menu">☰</button>
+      <div class="search">🔑 Login / Register</div>
+      <div class="actions">
+        <span class="badge">Pengguna: <strong id="topbar-user">Tamu</strong></span>
+      </div>
+    </header>
+
+    <main class="main container">
+      <div class="breadcrumbs"><a href="index.html">Beranda</a> / Login / Register</div>
+      <h2 class="page-title">Akses Akun</h2>
+
+      <section class="card">
+        <div class="card-body">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+            <button class="btn btn-primary" id="tab-login">Login</button>
+            <button class="btn" id="tab-register">Register</button>
+            <button class="btn btn-ghost" id="btn-logout">Logout</button>
+          </div>
+          <div id="api-tip" class="badge">Mode: Lokal</div>
+          <form class="form" id="form-login">
+            <div class="grid grid-2">
+              <div class="field">
+                <label>Email (tau.ac.id)</label>
+                <input type="email" class="input" name="email" 
+                       pattern=".*@(student|admin|staff)\.tau\.ac\.id$" 
+                       placeholder="nama@student.tau.ac.id" required>
+                <small style="color: #666; font-size: 12px;">Format: @student.tau.ac.id, @admin.tau.ac.id, atau @staff.tau.ac.id</small>
+              </div>
+              <div class="field"><label>Password</label><input type="password" class="input" name="password" required></div>
+            </div>
+            <div style="display:flex;gap:10px"><button class="btn btn-primary" type="submit">Masuk</button></div>
+            <div id="msg-login" class="muted"></div>
+          </form>
+
+          <form class="form hidden" id="form-register" style="margin-top:10px">
+            <div class="grid grid-2">
+              <div class="field"><label>Nama</label><input class="input" name="name" required></div>
+              <div class="field">
+                <label>Email (tau.ac.id)</label>
+                <input type="email" class="input" name="email" 
+                       pattern=".*@(student|admin|staff)\.tau\.ac\.id$"
+                       placeholder="nama@student.tau.ac.id" required>
+                <small style="color: #666; font-size: 12px;">Format: @student.tau.ac.id, @admin.tau.ac.id, atau @staff.tau.ac.id</small>
+              </div>
+            </div>
+            <div class="grid grid-2">
+              <div class="field"><label>Password</label><input type="password" class="input" name="password" required></div>
+              <div class="field"><label>Ulangi Password</label><input type="password" class="input" name="password2" required></div>
+            </div>
+            <div style="display:flex;gap:10px"><button class="btn btn-primary" type="submit">Daftar</button></div>
+            <div id="msg-register" class="muted"></div>
+          </form>
+        </div>
+      </section>
+
+      <div class="footer">Email domain yang diperbolehkan: @student.tau.ac.id, @admin.tau.ac.id, @staff.tau.ac.id</div>
+    </main>
+  </div>
+
+  <script src="assets/js/app.js"></script>
+  <script>
+    function show(el, yes){ el.classList.toggle('hidden', !yes) }
+    document.addEventListener('DOMContentLoaded', ()=>{
+      const fLogin = document.getElementById('form-login');
+      const fRegister = document.getElementById('form-register');
+      document.getElementById('tab-login').addEventListener('click', ()=>{ show(fLogin,true); show(fRegister,false); });
+      document.getElementById('tab-register').addEventListener('click', ()=>{ show(fLogin,false); show(fRegister,true); });
+      document.getElementById('btn-logout').addEventListener('click', ()=>{ SPFK.logout(); localStorage.removeItem('spfk_api_token'); localStorage.removeItem('spfk_api_user'); location.reload(); });
+
+      // Try PHP backend first, fallback to Node.js
+      const API_PHP = 'http://localhost/peminjaman/api';
+      const API_NODE = 'http://localhost:4000/api';
+      let API = API_PHP;
+      let useApi = false;
+      
+      // Get return URL from query string
+      const urlParams = new URLSearchParams(window.location.search);
+      const returnUrl = urlParams.get('return') || 'index.html';
+      
+      (async ()=>{
+        // Try PHP backend first
+        try{ 
+          await fetch(API_PHP+'/'); 
+          useApi = true; 
+          API = API_PHP;
+          document.getElementById('api-tip').textContent = 'Mode: Backend PHP'; 
+        } catch {
+          // Try Node.js backend
+          try {
+            await fetch(API_NODE+'/health');
+            useApi = true;
+            API = API_NODE;
+            document.getElementById('api-tip').textContent = 'Mode: Backend Node.js';
+          } catch {
+            useApi = false; 
+            document.getElementById('api-tip').textContent = 'Mode: Lokal';
+          }
+        }
+      })();
+
+      // Email domain validation
+      function validateEmail(email) {
+        const allowedDomains = ['@student.tau.ac.id', '@admin.tau.ac.id', '@staff.tau.ac.id'];
+        return allowedDomains.some(domain => email.endsWith(domain));
+      }
+
+      fLogin.addEventListener('submit', (e)=>{
+        e.preventDefault(); const d = new FormData(fLogin);
+        
+        // Validate email domain
+        const email = d.get('email');
+        if (!validateEmail(email)) {
+          document.getElementById('msg-login').textContent = 'Hanya email @student.tau.ac.id, @admin.tau.ac.id, atau @staff.tau.ac.id yang diperbolehkan';
+          document.getElementById('msg-login').style.color='var(--danger)';
+          return;
+        }
+        
+        (async ()=>{
+          if(useApi){
+            try{
+              const res = await fetch(API+'/auth/login',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email: d.get('email'), password: d.get('password') }) });
+              if(!res.ok) throw new Error((await res.json()).error||'Login gagal');
+              const { user, token } = await res.json();
+              localStorage.setItem('spfk_auth_token', token);
+              localStorage.setItem('spfk_auth_user', JSON.stringify(user));
+              document.getElementById('msg-login').textContent = 'Berhasil masuk sebagai '+user.name;
+              setTimeout(()=>{ 
+                location.href = decodeURIComponent(returnUrl); 
+              }, 600);
+            }catch(err){ document.getElementById('msg-login').textContent = err.message; document.getElementById('msg-login').style.color='var(--danger)'; }
+          }else{
+            try{ 
+              const auth = SPFK.users.login(d.get('email'), d.get('password'));
+              localStorage.setItem('spfk_auth_user', JSON.stringify(auth));
+              document.getElementById('msg-login').textContent = 'Berhasil masuk sebagai '+auth.name;
+              setTimeout(()=>{ 
+                location.href = decodeURIComponent(returnUrl); 
+              }, 600);
+            }catch(err){ document.getElementById('msg-login').textContent = err.message; document.getElementById('msg-login').style.color='var(--danger)'; }
+          }
+        })();
+      });
+
+      fRegister.addEventListener('submit', (e)=>{
+        e.preventDefault(); const d = new FormData(fRegister);
+        
+        // Validate email domain
+        const email = d.get('email');
+        if (!validateEmail(email)) {
+          document.getElementById('msg-register').textContent = 'Hanya email @student.tau.ac.id, @admin.tau.ac.id, atau @staff.tau.ac.id yang diperbolehkan';
+          document.getElementById('msg-register').style.color='var(--danger)';
+          return;
+        }
+        
+        if(d.get('password')!==d.get('password2')){ 
+          document.getElementById('msg-register').textContent='Password tidak sama'; 
+          document.getElementById('msg-register').style.color='var(--danger)'; 
+          return; 
+        }
+        
+        (async ()=>{
+          if(useApi){
+            try{
+              const res = await fetch(API+'/auth/register',{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name:d.get('name'), email:d.get('email'), password:d.get('password') }) });
+              if(!res.ok) throw new Error((await res.json()).error||'Registrasi gagal');
+              const { user, token } = await res.json();
+              localStorage.setItem('spfk_auth_token', token);
+              localStorage.setItem('spfk_auth_user', JSON.stringify(user));
+              document.getElementById('msg-register').textContent = 'Pendaftaran berhasil. Mengalihkan...';
+              setTimeout(()=> location.href=decodeURIComponent(returnUrl), 600);
+            }catch(err){ document.getElementById('msg-register').textContent = err.message; document.getElementById('msg-register').style.color='var(--danger)'; }
+          }else{
+            try{ const u = SPFK.users.register(d.get('name'), d.get('email'), d.get('password'));
+              SPFK.setAuth({id:u.id, name:u.name, email:u.email, role:u.role});
+              document.getElementById('msg-register').textContent = 'Pendaftaran berhasil. Mengalihkan...';
+              setTimeout(()=> location.href='index.html', 600);
+            }catch(err){ document.getElementById('msg-register').textContent = err.message; document.getElementById('msg-register').style.color='var(--danger)'; }
+          }
+        })();
+      });
+    });
+  </script>
+</body>
+</html>

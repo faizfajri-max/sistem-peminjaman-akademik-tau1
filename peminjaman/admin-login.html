@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login Admin — Sistem Peminjaman</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .admin-login-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+    }
+    .admin-login-box {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      padding: 40px;
+      max-width: 450px;
+      width: 100%;
+    }
+    .admin-logo {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .admin-logo-icon {
+      font-size: 60px;
+      margin-bottom: 10px;
+    }
+    .admin-logo h1 {
+      font-size: 24px;
+      color: #667eea;
+      margin: 10px 0 5px 0;
+    }
+    .admin-logo p {
+      color: #666;
+      font-size: 14px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      color: #333;
+      font-weight: 600;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.3s;
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    .btn-login {
+      width: 100%;
+      padding: 14px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .btn-login:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    .btn-login:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .alert {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+    .alert-info {
+      background: #dbeafe;
+      border: 1px solid #3b82f6;
+      color: #1e40af;
+    }
+    .alert-error {
+      background: #fee2e2;
+      border: 1px solid #ef4444;
+      color: #991b1b;
+    }
+    .alert-success {
+      background: #d1fae5;
+      border: 1px solid #10b981;
+      color: #065f46;
+    }
+    .back-link {
+      text-align: center;
+      margin-top: 20px;
+    }
+    .back-link a {
+      color: #667eea;
+      text-decoration: none;
+      font-size: 14px;
+    }
+    .back-link a:hover {
+      text-decoration: underline;
+    }
+    .api-status {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 12px;
+      color: #666;
+    }
+    .api-status .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+    .api-status .badge-success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    .api-status .badge-warning {
+      background: #fef3c7;
+      color: #92400e;
+    }
+  </style>
+</head>
+<body>
+  <div class="admin-login-container">
+    <div class="admin-login-box">
+      <div class="admin-logo">
+        <div class="admin-logo-icon">
+          <img src="assets/img/logo kampus.png" alt="Logo Kampus" style="width: 60px; height: 60px; object-fit: contain;">
+        </div>
+        <h1>Admin Login</h1>
+        <p>Sistem Peminjaman Fasilitas Kampus</p>
+      </div>
+
+      <div class="api-status">
+        <span id="api-status-badge" class="badge badge-warning">Checking backend...</span>
+      </div>
+
+      <div id="alert-container"></div>
+
+      <form id="admin-login-form">
+        <div class="form-group">
+          <label for="email">Email Admin/Staff</label>
+          <input 
+            type="email" 
+            id="email" 
+            name="email" 
+            placeholder="admin@kampus.ac.id"
+            required 
+            autocomplete="email"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input 
+            type="password" 
+            id="password" 
+            name="password" 
+            placeholder="••••••••"
+            required 
+            autocomplete="current-password"
+          />
+        </div>
+
+        <button type="submit" class="btn-login" id="btn-submit">
+          Masuk ke Admin Panel
+        </button>
+      </form>
+
+      <div class="back-link">
+        <a href="index.html">← Kembali ke Beranda</a>
+      </div>
+
+      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #666; text-align: center;">
+        <p><strong>Akun Default:</strong></p>
+        <p>Admin: admin@kampus.ac.id / admin123</p>
+        <p>Staff: staff@kampus.ac.id / staff123</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="assets/js/app.js"></script>
+  <script>
+    // Try PHP backend first, fallback to Node.js
+    const API_PHP = 'http://localhost/peminjaman/api';
+    const API_NODE = 'http://localhost:4000/api';
+    let API = API_PHP;
+    let useApi = false;
+
+    const form = document.getElementById('admin-login-form');
+    const btnSubmit = document.getElementById('btn-submit');
+    const alertContainer = document.getElementById('alert-container');
+    const apiStatusBadge = document.getElementById('api-status-badge');
+
+    // Check backend availability
+    (async function checkBackend() {
+      try {
+        await fetch(API_PHP + '/');
+        API = API_PHP;
+        useApi = true;
+        apiStatusBadge.textContent = '✓ Backend PHP Active';
+        apiStatusBadge.className = 'badge badge-success';
+      } catch {
+        try {
+          await fetch(API_NODE + '/health');
+          API = API_NODE;
+          useApi = true;
+          apiStatusBadge.textContent = '✓ Backend Node.js Active';
+          apiStatusBadge.className = 'badge badge-success';
+        } catch {
+          useApi = false;
+          apiStatusBadge.textContent = '⚠ Mode Lokal (Offline)';
+          apiStatusBadge.className = 'badge badge-warning';
+        }
+      }
+    })();
+
+    function showAlert(message, type = 'info') {
+      alertContainer.innerHTML = `
+        <div class="alert alert-${type}">
+          ${message}
+        </div>
+      `;
+    }
+
+    function clearAlert() {
+      alertContainer.innerHTML = '';
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAlert();
+
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      if (!email || !password) {
+        showAlert('Email dan password harus diisi', 'error');
+        return;
+      }
+
+      btnSubmit.disabled = true;
+      btnSubmit.textContent = 'Memproses...';
+
+      try {
+        if (useApi) {
+          // Login via API
+          const response = await fetch(API + '/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Login gagal');
+          }
+
+          const data = await response.json();
+          const user = data.user || data.data;
+          const token = data.token;
+
+          // Check if user is admin or staff
+          if (user.role !== 'admin' && user.role !== 'staff') {
+            throw new Error('Akses ditolak. Hanya Admin dan Staff yang dapat mengakses panel ini.');
+          }
+
+          // Save to localStorage
+          localStorage.setItem('spfk_api_token', token);
+          localStorage.setItem('spfk_api_user', JSON.stringify(user));
+
+          showAlert(`Login berhasil! Mengalihkan ke Admin Panel...`, 'success');
+          
+          setTimeout(() => {
+            window.location.href = 'admin.html';
+          }, 800);
+
+        } else {
+          // Login via localStorage
+          const auth = SPFK.users.login(email, password);
+
+          // Check if user is admin or staff
+          if (auth.role !== 'admin' && auth.role !== 'staff') {
+            SPFK.logout();
+            throw new Error('Akses ditolak. Hanya Admin dan Staff yang dapat mengakses panel ini.');
+          }
+
+          showAlert(`Login berhasil! Mengalihkan ke Admin Panel...`, 'success');
+          
+          setTimeout(() => {
+            window.location.href = 'admin.html';
+          }, 800);
+        }
+
+      } catch (error) {
+        showAlert(error.message, 'error');
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Masuk ke Admin Panel';
+      }
+    });
+
+    // Check if already logged in as admin/staff
+    (function checkExistingSession() {
+      const apiUser = localStorage.getItem('spfk_api_user');
+      const localAuth = SPFK.getAuth();
+      
+      let currentUser = null;
+      if (apiUser) {
+        try {
+          currentUser = JSON.parse(apiUser);
+        } catch(e) {}
+      } else if (localAuth) {
+        currentUser = localAuth;
+      }
+
+      if (currentUser && (currentUser.role === 'admin' || currentUser.role === 'staff')) {
+        showAlert('Anda sudah login. Mengalihkan ke Admin Panel...', 'info');
+        setTimeout(() => {
+          window.location.href = 'admin.html';
+        }, 1000);
+      }
+    })();
+  </script>
+</body>
+</html>

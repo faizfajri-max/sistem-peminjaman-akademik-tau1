@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel — Sistem Peminjaman</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <!-- Tailwind + Vue for rich admin UI -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { 
+      theme: { 
+        extend: { 
+          colors: { 
+            campus: { primary: '#4F8EF7' }
+          },
+          animation: {
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'shake': 'shake 0.5s ease-in-out infinite'
+          },
+          keyframes: {
+            shake: {
+              '0%, 100%': { transform: 'translateX(0)' },
+              '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-2px)' },
+              '20%, 40%, 60%, 80%': { transform: 'translateX(2px)' }
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+</head>
+<body data-page="admin" data-require-auth="true">
+  <div class="app">
+    <aside class="sidebar">
+      <a class="brand" href="index.html">
+        <div class="brand-logo" style="background: none; box-shadow: none;">
+          <img src="assets/img/logo kampus.png" alt="Logo Kampus" style="width: 48px !important; height: 48px !important; object-fit: contain;">
+        </div>
+        <h1>Sistem Peminjaman Fasilitas Kampus Universitas Tanri Abeng</h1>
+      </a>
+      <nav class="nav">
+        <a href="index.html">Beranda</a>
+        <a href="facilities.html">Daftar Fasilitas</a>
+        <a href="schedule.html">Jadwal & Ketersediaan</a>
+        <a href="borrow.html">Form Peminjaman</a>
+        <a href="confirmation.html">Konfirmasi & Dokumentasi</a>
+        <a href="admin.html">Admin Panel</a>
+      </nav>
+      <div class="muted">© 2025 Kampus • Versi demo</div>
+    </aside>
+
+    <header class="topbar">
+      <button class="btn hamburger" aria-label="Toggle menu">☰</button>
+      <div class="search">🛠️ Admin Panel</div>
+      <div class="actions" id="authActions"></div>
+    </header>
+
+    <main class="main container">
+      <div class="breadcrumbs"><a href="index.html">Beranda</a> / Admin Panel</div>
+      <h2 class="page-title">Dashboard Admin</h2>
+
+      <section id="app-admin" class="mt-2">
+        <!-- Mode info -->
+        <div v-if="!apiOk" class="bg-blue-50 border border-blue-200 text-blue-700 rounded-xl p-4 mb-4">
+          <strong>Mode Lokal:</strong> Backend API tidak tersedia. Data diambil dari localStorage. 
+          Untuk fitur lengkap (email notifikasi, role management), jalankan server di http://localhost:4000
+        </div>
+        <div v-else class="bg-green-50 border border-green-200 text-green-700 rounded-xl p-4 mb-4">
+          <strong>Mode Backend API:</strong> Terhubung ke server. 
+          <span v-if="user">Login sebagai: {{ user.name }} ({{ user.role }})</span>
+          <span v-else>Belum login. <a href="login.html" class="underline font-semibold">Login</a></span>
+        </div>
+
+        <div v-if="canView" class="space-y-4">
+          <!-- KPIs -->
+          <div class="grid md:grid-cols-3 gap-3">
+            <div class="kpi-card"><div class="kpi-title">Total Pengajuan</div><div class="kpi-value">{{ kpi.total }}</div></div>
+            <div class="kpi-card"><div class="kpi-title">Disetujui</div><div class="kpi-value">{{ kpi.approved }}</div></div>
+            <div class="kpi-card"><div class="kpi-title">Menunggu</div><div class="kpi-value">{{ kpi.pending }}</div></div>
+          </div>
+
+          <!-- Tabs -->
+          <div class="bg-white border border-gray-200 rounded-xl shadow-sm p-2 flex gap-2 flex-wrap">
+            <button @click="tab='bookings'" :class="['px-4 py-2 rounded-lg', tab==='bookings' ? 'bg-campus-primary text-white' : '']">📋 Form Submissions</button>
+            <button @click="tab='users'" :disabled="!isAdmin" :class="['px-4 py-2 rounded-lg', tab==='users' ? 'bg-campus-primary text-white' : '', !isAdmin ? 'opacity-50 cursor-not-allowed' : '']">Users</button>
+            <button @click="tab='facilities'" :disabled="!isElevated" :class="['px-4 py-2 rounded-lg', tab==='facilities' ? 'bg-campus-primary text-white' : '', !isElevated ? 'opacity-50 cursor-not-allowed' : '']">Fasilitas</button>
+            <button @click="tab='reports'" :disabled="!canReport" :class="['px-4 py-2 rounded-lg', tab==='reports' ? 'bg-campus-primary text-white' : '', !canReport ? 'opacity-50 cursor-not-allowed' : '']">Laporan</button>
+          </div>
+
+          <!-- Bookings / Form Submissions -->
+          <section v-if="tab==='bookings'" class="bg-white border border-gray-200 rounded-xl shadow-sm">
+            <div class="p-4 border-b flex flex-col md:flex-row gap-3 md:items-center">
+              <h3 class="text-lg font-semibold">📋 Form Submissions (Bookings)</h3>
+              <div class="flex gap-2 items-center ml-auto">
+                <select v-model="bookingFilters.status" @change="loadBookings" class="rounded-lg border-gray-200">
+                  <option value="">Semua Status</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="done">Done</option>
+                </select>
+                <button @click="loadBookings" class="px-3 py-1.5 border rounded-lg">🔄 Refresh</button>
+              </div>
+            </div>
+            
+            <!-- Bookings Table -->
+            <div class="p-2 overflow-x-auto">
+              <table class="min-w-full text-sm">
+                <thead class="bg-slate-50 text-slate-600">
+                  <tr>
+                    <th class="px-3 py-2 text-left">Kode Booking</th>
+                    <th class="px-3 py-2 text-left">Peminjam</th>
+                    <th class="px-3 py-2 text-left">NIM/NIP</th>
+                    <th class="px-3 py-2 text-left">Unit</th>
+                    <th class="px-3 py-2 text-left">Fasilitas</th>
+                    <th class="px-3 py-2 text-left">Waktu</th>
+                    <th class="px-3 py-2 text-left">Status</th>
+                    <th class="px-3 py-2 text-left">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="booking in bookings" :key="booking.id" class="border-t hover:bg-gray-50">
+                    <td class="px-3 py-2">
+                      <code class="bg-slate-100 px-2 py-1 rounded text-xs">{{ booking.booking_id }}</code>
+                    </td>
+                    <td class="px-3 py-2 font-medium">{{ booking.borrower_name }}</td>
+                    <td class="px-3 py-2">{{ booking.identity }}</td>
+                    <td class="px-3 py-2 text-xs">{{ booking.unit }}</td>
+                    <td class="px-3 py-2">
+                      <div class="font-medium">{{ booking.facility_name }}</div>
+                      <div class="text-xs text-slate-500">{{ booking.room_type }}</div>
+                    </td>
+                    <td class="px-3 py-2 text-xs">
+                      <div>{{ dt(booking.start_date) }}</div>
+                      <div class="text-slate-500">{{ time(booking.start_date) }} - {{ time(booking.end_date) }}</div>
+                    </td>
+                    <td class="px-3 py-2">
+                      <span :class="['badge', booking.status==='approved'?'success':(booking.status==='pending'?'warn':(booking.status==='done'?'success':'danger'))]">
+                        {{ booking.status }}
+                      </span>
+                    </td>
+                    <td class="px-3 py-2">
+                      <div class="flex gap-2">
+                        <button @click="viewBookingDetail(booking)" class="btn btn-sm" title="Lihat Detail">
+                          👁️ Detail
+                        </button>
+                        <button v-if="booking.status === 'pending'" @click="updateBookingStatus(booking.booking_id, 'approved')" class="btn btn-success btn-sm">
+                          ✅ Setuju
+                        </button>
+                        <button v-if="booking.status === 'pending'" @click="updateBookingStatus(booking.booking_id, 'rejected')" class="btn btn-danger btn-sm">
+                          ❌ Tolak
+                        </button>
+                        <button v-if="booking.status === 'approved'" @click="updateBookingStatus(booking.booking_id, 'done')" class="btn btn-sm">
+                          ✔️ Selesai
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr v-if="!bookings.length">
+                    <td colspan="8" class="px-3 py-4 text-center text-slate-500">Tidak ada data booking.</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <!-- Booking Detail Modal -->
+          <div v-if="selectedBooking" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="selectedBooking = null">
+            <div class="bg-white rounded-xl shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+              <!-- Header -->
+              <div class="p-6 border-b flex justify-between items-start">
+                <div>
+                  <h3 class="text-2xl font-bold mb-2">Detail Booking</h3>
+                  <code class="bg-slate-100 px-3 py-1 rounded text-sm">{{ selectedBooking.booking_id }}</code>
+                </div>
+                <button @click="selectedBooking = null" class="text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
+              </div>
+
+              <!-- Content -->
+              <div class="p-6 space-y-4">
+                <!-- Status Badge - Enhanced -->
+                <div class="flex items-center gap-3">
+                  <span class="text-sm text-slate-600">Status:</span>
+                  <span :class="[
+                    'inline-flex items-center gap-2 px-4 py-2 rounded-full font-semibold text-sm transition-all duration-300 transform hover:scale-105 hover:shadow-lg',
+                    selectedBooking.status === 'approved' ? 'bg-gradient-to-r from-green-400 to-green-600 text-white animate-pulse-slow' :
+                    selectedBooking.status === 'pending' ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-white' :
+                    selectedBooking.status === 'done' ? 'bg-gradient-to-r from-blue-400 to-blue-600 text-white' :
+                    'bg-gradient-to-r from-red-400 to-red-600 text-white animate-shake'
+                  ]">
+                    <span :class="[
+                      'w-2 h-2 rounded-full',
+                      selectedBooking.status === 'approved' ? 'bg-green-200 animate-ping' :
+                      selectedBooking.status === 'pending' ? 'bg-yellow-200 animate-pulse' :
+                      selectedBooking.status === 'done' ? 'bg-blue-200' :
+                      'bg-red-200 animate-ping'
+                    ]"></span>
+                    {{ selectedBooking.status === 'approved' ? 'Disetujui' : 
+                       selectedBooking.status === 'pending' ? 'Menunggu' : 
+                       selectedBooking.status === 'done' ? 'Selesai' : 
+                       selectedBooking.status === 'rejected' ? 'Ditolak' : selectedBooking.status }}
+                  </span>
+                </div>
+
+                <!-- Peminjam Info -->
+                <div class="bg-slate-50 rounded-lg p-4">
+                  <h4 class="font-semibold mb-3 text-slate-700">👤 Informasi Peminjam</h4>
+                  <div class="grid md:grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span class="text-slate-600">Nama:</span>
+                      <div class="font-medium">{{ selectedBooking.borrower_name }}</div>
+                    </div>
+                    <div>
+                      <span class="text-slate-600">NIM/NIP:</span>
+                      <div class="font-medium">{{ selectedBooking.identity }}</div>
+                    </div>
+                    <div class="md:col-span-2">
+                      <span class="text-slate-600">Unit/Prodi:</span>
+                      <div class="font-medium">{{ selectedBooking.unit }}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Facility Info -->
+                <div class="bg-blue-50 rounded-lg p-4">
+                  <h4 class="font-semibold mb-3 text-blue-900">🏢 Fasilitas yang Dipinjam</h4>
+                  <div class="grid md:grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span class="text-blue-700">Nama Fasilitas:</span>
+                      <div class="font-medium text-blue-900">{{ selectedBooking.facility_name }}</div>
+                    </div>
+                    <div>
+                      <span class="text-blue-700">Jenis Ruangan:</span>
+                      <div class="font-medium text-blue-900">{{ selectedBooking.room_type || '-' }}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Time Info -->
+                <div class="bg-green-50 rounded-lg p-4">
+                  <h4 class="font-semibold mb-3 text-green-900">📅 Waktu Peminjaman</h4>
+                  <div class="grid md:grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span class="text-green-700">Tanggal:</span>
+                      <div class="font-medium text-green-900">{{ dt(selectedBooking.start_date) }}</div>
+                    </div>
+                    <div>
+                      <span class="text-green-700">Jam:</span>
+                      <div class="font-medium text-green-900">{{ time(selectedBooking.start_date) }} - {{ time(selectedBooking.end_date) }}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Additional Facilities -->
+                <div v-if="selectedBooking.facilities && selectedBooking.facilities.length > 0" class="bg-amber-50 rounded-lg p-4">
+                  <h4 class="font-semibold mb-3 text-amber-900">🛠️ Fasilitas Tambahan</h4>
+                  <div class="space-y-2">
+                    <div v-for="fac in selectedBooking.facilities" :key="fac.id" class="flex justify-between items-center text-sm bg-white rounded px-3 py-2">
+                      <span class="font-medium text-amber-900">{{ fac.item }}</span>
+                      <span class="text-amber-700">Jumlah: <strong>{{ fac.quantity }}</strong></span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Notes -->
+                <div v-if="selectedBooking.notes" class="bg-slate-50 rounded-lg p-4">
+                  <h4 class="font-semibold mb-2 text-slate-700">📝 Catatan</h4>
+                  <p class="text-sm text-slate-600">{{ selectedBooking.notes }}</p>
+                </div>
+
+                <!-- Document -->
+                <div v-if="selectedBooking.document_name && selectedBooking.document_name.trim() !== ''" class="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-lg p-5">
+                  <div class="flex items-start gap-4">
+                    <div class="flex-shrink-0 w-12 h-12 bg-purple-500 rounded-lg flex items-center justify-center text-white text-2xl">
+                      📄
+                    </div>
+                    <div class="flex-1">
+                      <h4 class="font-bold text-purple-900 mb-2 text-lg">� Dokumen Upload (Surat Izin / Proposal)</h4>
+                      <div class="bg-white rounded p-3 mb-3">
+                        <div class="flex items-center gap-2 mb-2">
+                          <svg class="w-5 h-5 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z"/>
+                          </svg>
+                          <span class="text-sm font-medium text-purple-900">{{ selectedBooking.document_name }}</span>
+                        </div>
+                        <div class="text-xs text-purple-700">
+                          File tersimpan di server
+                        </div>
+                      </div>
+                      <a :href="'api/uploads/' + selectedBooking.document_name" target="_blank" download class="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        Download Dokumen
+                      </a>
+                      <a :href="'api/uploads/' + selectedBooking.document_name" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 ml-2 bg-white hover:bg-purple-50 text-purple-700 font-medium rounded-lg border-2 border-purple-300 transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                        </svg>
+                        Lihat Dokumen
+                      </a>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- No Document Notice -->
+                <div v-else class="bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                  <svg class="w-12 h-12 mx-auto text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  </svg>
+                  <p class="text-sm text-gray-500">Tidak ada dokumen yang diupload</p>
+                </div>
+
+                <!-- Timestamps -->
+                <div class="text-xs text-slate-500 border-t pt-3">
+                  <div>Dibuat: {{ fmtDateTime(selectedBooking.created_at) }}</div>
+                  <div v-if="selectedBooking.updated_at && selectedBooking.updated_at !== selectedBooking.created_at">
+                    Diupdate: {{ fmtDateTime(selectedBooking.updated_at) }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Footer Actions -->
+              <div class="p-6 border-t bg-slate-50 flex gap-3 justify-end">
+                <button @click="selectedBooking = null" class="btn">Tutup</button>
+                <a :href="'confirmation.html?id=' + selectedBooking.booking_id" target="_blank" class="btn btn-primary">
+                  👁️ Lihat di Confirmation
+                </a>
+                <button v-if="selectedBooking.status === 'pending'" @click="updateBookingStatus(selectedBooking.booking_id, 'approved')" class="btn btn-success">
+                  ✅ Setujui
+                </button>
+                <button v-if="selectedBooking.status === 'pending'" @click="updateBookingStatus(selectedBooking.booking_id, 'rejected')" class="btn btn-danger">
+                  ❌ Tolak
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Users Management (Admin only) -->
+          <section v-if="tab==='users' && isAdmin" class="bg-white border border-gray-200 rounded-xl shadow-sm">
+            <div class="p-4 border-b font-semibold">Kelola Users</div>
+            <div class="p-4">
+              <div class="flex flex-col md:flex-row gap-3 mb-3">
+                <input v-model="userFilters.search" @input="fetchUsers" placeholder="Cari nama atau email..." class="rounded-lg border-gray-200 flex-1" />
+                <select v-model="userFilters.role" @change="fetchUsers" class="rounded-lg border-gray-200">
+                  <option value="">Semua Role</option>
+                  <option value="admin">Admin</option>
+                  <option value="staff">Staff</option>
+                  <option value="user">User</option>
+                </select>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                  <thead class="bg-slate-50 text-slate-600">
+                    <tr>
+                      <th class="px-3 py-2 text-left">ID</th>
+                      <th class="px-3 py-2 text-left">Nama</th>
+                      <th class="px-3 py-2 text-left">Email</th>
+                      <th class="px-3 py-2 text-left">Role</th>
+                      <th class="px-3 py-2 text-left">Terdaftar</th>
+                      <th class="px-3 py-2 text-left">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="u in users" :key="u.id" class="border-t">
+                      <td class="px-3 py-2">{{ u.id }}</td>
+                      <td class="px-3 py-2">{{ u.name }}</td>
+                      <td class="px-3 py-2">{{ u.email }}</td>
+                      <td class="px-3 py-2">
+                        <select v-model="u.role" @change="updateUserRole(u)" class="rounded-lg border-gray-200 text-sm" :disabled="u.id === user.id">
+                          <option value="admin">Admin</option>
+                          <option value="staff">Staff</option>
+                          <option value="user">User</option>
+                        </select>
+                      </td>
+                      <td class="px-3 py-2">{{ dt(u.created_at) }}</td>
+                      <td class="px-3 py-2">
+                        <button @click="deleteUser(u)" :disabled="u.id === user.id" class="btn btn-danger btn-sm" :class="{ 'opacity-50 cursor-not-allowed': u.id === user.id }">Hapus</button>
+                      </td>
+                    </tr>
+                    <tr v-if="!users.length"><td colspan="6" class="px-3 py-4 text-center text-slate-500">Tidak ada data user.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div v-if="userPagination && userPagination.totalPages > 1" class="flex justify-center gap-2 mt-4">
+                <button @click="userPage > 1 && (userPage--, fetchUsers())" :disabled="userPage === 1" class="btn btn-sm">Previous</button>
+                <span class="px-3 py-2">Page {{ userPage }} of {{ userPagination.totalPages }}</span>
+                <button @click="userPage < userPagination.totalPages && (userPage++, fetchUsers())" :disabled="userPage === userPagination.totalPages" class="btn btn-sm">Next</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- Facilities CRUD (Admin only) -->
+          <section v-if="tab==='facilities' && isElevated" class="bg-white border border-gray-200 rounded-xl shadow-sm">
+            <div class="p-4 border-b font-semibold">Kelola Fasilitas</div>
+            <div class="p-4">
+              <form @submit.prevent="createFacility" class="flex flex-col gap-2 mb-3">
+                <div class="flex flex-col md:flex-row gap-2">
+                  <input v-model="facForm.name" placeholder="Nama" class="rounded-lg border-gray-200" required />
+                  <select v-model="facForm.type" class="rounded-lg border-gray-200" required>
+                  <option value="">Jenis</option>
+                  <option>Kelas</option>
+                  <option>Ballroom</option>
+                  <option>Rans Room</option>
+                  <option>BUMR</option>
+                  <option>LPPM</option>
+                  <option>Perpustakaan</option>
+                  <option>Ruang Podcast</option>
+                  <option>Peralatan</option>
+                  </select>
+                  <input v-model.number="facForm.capacity" type="number" min="0" placeholder="Kapasitas" class="rounded-lg border-gray-200" />
+                  <input v-model="facForm.location" placeholder="Lokasi" class="rounded-lg border-gray-200" />
+                </div>
+                <textarea v-model="facForm.description" placeholder="Keterangan (opsional)" class="rounded-lg border-gray-200" rows="2"></textarea>
+                <div class="flex flex-col md:flex-row gap-2">
+                  <input v-model="facForm.features" placeholder="Fitur (pisahkan koma)" class="rounded-lg border-gray-200 flex-1" />
+                  <button :disabled="!isElevated" class="px-4 py-2 rounded-lg bg-campus-primary text-white" :class="{ 'opacity-50 cursor-not-allowed': !isElevated }">Tambah</button>
+                </div>
+              </form>
+              <div class="overflow-x-auto">
+                <table class="min-w-full text-sm">
+                  <thead class="bg-slate-50 text-slate-600">
+                    <tr>
+                      <th class="px-3 py-2 text-left">Nama</th>
+                      <th class="px-3 py-2 text-left">Jenis</th>
+                      <th class="px-3 py-2 text-left">Kapasitas</th>
+                      <th class="px-3 py-2 text-left">Lokasi</th>
+                      <th class="px-3 py-2 text-left">Keterangan</th>
+                      <th class="px-3 py-2 text-left">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="f in facilities" :key="f.id" class="border-t">
+                      <td class="px-3 py-2">{{ f.name || '-' }}</td>
+                      <td class="px-3 py-2">{{ f.type || '-' }}</td>
+                      <td class="px-3 py-2">{{ f.capacity || '-' }}</td>
+                      <td class="px-3 py-2">{{ f.location || '-' }}</td>
+                      <td class="px-3 py-2 text-sm">
+                        <div v-if="f.description"><span class="text-slate-500">Keterangan:</span> <span class="font-medium">{{ f.description }}</span></div>
+                        <div v-if="f.location"><span class="text-slate-500">Lokasi:</span> <span class="font-medium">{{ f.location }}</span></div>
+                        <div v-if="f.features && f.features.length"><span class="text-slate-500">Fitur:</span> <span class="font-medium">{{ (f.features||[]).join(', ') }}</span></div>
+                        <div v-if="typeof f.capacity !== 'undefined' && f.capacity !== null"><span class="text-slate-500">Kapasitas:</span> <span class="font-medium">{{ f.capacity }}</span></div>
+                      </td>
+                      <td class="px-3 py-2 flex gap-2">
+                        <button @click="editFacility(f)" :disabled="!isElevated" class="btn btn-sm" :class="{ 'opacity-50 cursor-not-allowed': !isElevated }">Ubah</button>
+                        <button @click="removeFacility(f.id)" :disabled="!isElevated" class="btn btn-danger btn-sm" :class="{ 'opacity-50 cursor-not-allowed': !isElevated }">Hapus</button>
+                      </td>
+                    </tr>
+                    <tr v-if="!facilities.length"><td colspan="6" class="px-3 py-4 text-center text-slate-500">Tidak ada fasilitas.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <!-- Edit inline form -->
+              <div v-if="editFac" class="mt-3 p-3 border rounded-xl">
+                <div class="font-semibold mb-2">Ubah Fasilitas</div>
+                <form @submit.prevent="updateFacility" class="flex flex-col gap-2">
+                  <div class="flex flex-col md:flex-row gap-2">
+                    <input v-model="editFac.name" class="rounded-lg border-gray-200" required />
+                    <select v-model="editFac.type" class="rounded-lg border-gray-200" required>
+                    <option>Kelas</option><option>Ballroom</option><option>Rans Room</option><option>BUMR</option><option>LPPM</option><option>Perpustakaan</option><option>Ruang Podcast</option><option>Peralatan</option>
+                    </select>
+                    <input v-model.number="editFac.capacity" type="number" min="0" class="rounded-lg border-gray-200" />
+                    <input v-model="editFac.location" class="rounded-lg border-gray-200" />
+                  </div>
+                  <textarea v-model="editFac.description" placeholder="Keterangan (opsional)" class="rounded-lg border-gray-200" rows="2"></textarea>
+                  <div class="flex flex-col md:flex-row gap-2">
+                    <input v-model="editFac.featuresInput" placeholder="Fitur (pisahkan koma)" class="rounded-lg border-gray-200 flex-1" />
+                    <button class="px-4 py-2 rounded-lg bg-campus-primary text-white">Simpan</button>
+                    <button type="button" @click="editFac=null" class="px-4 py-2 rounded-lg border">Batal</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </section>
+
+          <!-- Reports (Admin + Staff) -->
+          <section v-if="tab==='reports' && canReport" class="bg-white border border-gray-200 rounded-xl shadow-sm">
+            <div class="p-4 border-b font-semibold">Laporan Peminjaman</div>
+            <div class="p-4 flex flex-col md:flex-row gap-2">
+              <input v-model="rep.unit" placeholder="Prodi/Unit" class="rounded-lg border-gray-200"/>
+              <select v-model="rep.roomType" class="rounded-lg border-gray-200">
+                <option value="">Semua Jenis</option>
+                <option>Kelas</option>
+                <option>Ballroom</option>
+                <option>Rans Room</option>
+                <option>BUMR</option>
+                <option>LPPM</option>
+                <option>Perpustakaan</option>
+                <option>Ruang Podcast</option>
+              </select>
+              <input v-model="rep.from" type="datetime-local" class="rounded-lg border-gray-200"/>
+              <input v-model="rep.to" type="datetime-local" class="rounded-lg border-gray-200"/>
+              <button @click="loadReport" class="px-4 py-2 rounded-lg bg-campus-primary text-white">Terapkan</button>
+            </div>
+            <div class="p-4 grid md:grid-cols-4 gap-3">
+              <div class="kpi-card"><div class="kpi-title">Menunggu</div><div class="kpi-value">{{ report.pending }}</div></div>
+              <div class="kpi-card"><div class="kpi-title">Disetujui</div><div class="kpi-value">{{ report.approved }}</div></div>
+              <div class="kpi-card"><div class="kpi-title">Ditolak</div><div class="kpi-value">{{ report.rejected }}</div></div>
+              <div class="kpi-card"><div class="kpi-title">Selesai</div><div class="kpi-value">{{ report.done }}</div></div>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="assets/js/app.js"></script>
+  <script src="assets/js/auth-guard.js"></script>
+  <script>
+    // Admin Panel Access Control - Prioritizes API Token (supports both key names)
+    (async function protectAdminPanel() {
+      const token = localStorage.getItem('spfk_auth_token') || localStorage.getItem('spfk_api_token');
+      const API_PHP = 'http://localhost/peminjaman/api';
+      const API_NODE = 'http://localhost:4000/api';
+      let activeApi = '';
+
+      // 1. Check for API token first (New System from auth.html)
+      if (token) {
+        // Determine which API is active to validate the token
+        try {
+          // Use a lightweight endpoint that should exist
+          await fetch(API_PHP + '/', { method: 'HEAD', mode: 'no-cors' });
+          activeApi = API_PHP;
+        } catch {
+          try {
+            await fetch(API_NODE + '/health', { method: 'HEAD', mode: 'no-cors' });
+            activeApi = API_NODE;
+          } catch {
+            // No API available, proceed to old system check
+          }
+        }
+
+        if (activeApi && token) {
+          try {
+            const res = await fetch(activeApi + '/auth/me', {
+              headers: { 'Authorization': 'Bearer ' + token }
+            });
+            
+            if (res.ok) {
+              const data = await res.json();
+              const user = data.user || data.data; // Support both response formats
+              if (user && (user.role === 'admin' || user.role === 'staff')) {
+                console.log('Access granted via API token. Role:', user.role);
+                return; // Access granted, stop the script.
+              }
+            }
+          } catch (e) {
+            console.error('API token validation failed, falling back.', e);
+          }
+        }
+      }
+
+      // 2. Fallback to old localStorage auth system (from login.html)
+      const localAuth = SPFK.getAuth();
+      if (localAuth && (localAuth.role === 'admin' || localAuth.role === 'staff')) {
+        console.log('Access granted via local auth. Role:', localAuth.role);
+        return; // Access granted
+      }
+
+      // 3. If all checks fail, deny access and redirect to the correct login page.
+      alert('Akses ditolak. Halaman ini hanya untuk Admin dan Staff. Silakan login.');
+      location.href = 'auth.html'; // Redirect to the new login page
+    })();
+  </script>
+  <script>
+  const { createApp, ref, reactive, computed } = Vue;
+    
+    // Try PHP backend first, fallback to Node.js
+    const API_PHP = 'http://localhost/peminjaman/api';
+    const API_NODE = 'http://localhost:4000/api';
+    let API = API_PHP;
+    
+    // Check backend on page load
+    (async function checkBackend() {
+      try {
+        await fetch(API_PHP + '/');
+        API = API_PHP;
+        console.log('Using PHP backend');
+      } catch {
+        try {
+          await fetch(API_NODE + '/health');
+          API = API_NODE;
+          console.log('Using Node.js backend');
+        } catch {
+          console.log('No backend available, using localStorage');
+        }
+      }
+    })();
+    
+    async function apiFetch(path, { method='GET', body=null, token }={}){
+      const res = await fetch(API+path, { method, headers: { 'Content-Type':'application/json', ...(token?{Authorization:'Bearer '+token}:{}) }, body: body?JSON.stringify(body):null });
+      if(!res.ok){ throw new Error((await res.json().catch(()=>({error:res.statusText}))).error || 'Request error'); }
+      return res.json();
+    }
+    function fmtDate(d){ return new Date(d).toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'}) }
+    function fmtTime(d){ return new Date(d).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'}) }
+
+    createApp({
+      setup(){
+        const apiOk = ref(false);
+  const token = ref(localStorage.getItem('spfk_auth_token') || localStorage.getItem('spfk_api_token') || '');
+        const user = ref(null);
+        const tab = ref('bookings'); // Default tab sekarang bookings
+        const loans = ref([]);
+        const facilities = ref([]);
+        const kpi = reactive({ total:0, approved:0, pending:0 });
+        const filters = reactive({ status:'', unit:'', roomType:'' });
+        const notifyEmail = reactive({});
+        
+        // Fallback untuk localStorage jika API tidak tersedia
+        const canView = computed(()=> {
+          if(!apiOk.value) return true; // Mode lokal, semua bisa akses
+          return token.value && user.value; // Mode API, butuh login
+        });
+        const isAdmin = computed(()=> {
+          if(!apiOk.value) return true; // Mode lokal, treat as admin for full demo access
+          return user.value?.role==='admin';
+        });
+        const isElevated = computed(()=> {
+          if(!apiOk.value) return true; // Mode lokal, admin+staff allowed
+          return user.value && (user.value.role==='admin' || user.value.role==='staff');
+        });
+        const canEdit = computed(()=> {
+          if(!apiOk.value) return true; // Mode lokal, semua bisa edit
+          return user.value && (user.value.role==='admin' || user.value.role==='staff');
+        });
+        const canReport = computed(()=> {
+          if(!apiOk.value) return true; // Mode lokal, semua bisa lihat
+          return user.value && (user.value.role==='admin' || user.value.role==='staff');
+        });
+
+        // Facilities form
+  const facForm = reactive({ name:'', type:'', capacity:0, location:'', description:'', features:'' });
+        const editFac = ref(null);
+
+        // Reports
+        const rep = reactive({ unit:'', roomType:'', from:'', to:'' });
+        const report = reactive({ pending:0, approved:0, rejected:0, done:0 });
+
+        // Bookings
+        const bookings = ref([]);
+        const selectedBooking = ref(null);
+        const bookingFilters = reactive({ status: '' });
+
+        function dt(x){ return fmtDate(x) }
+        function time(x){ return fmtTime(x) }
+        function fmtDateTime(x){ 
+          if (!x) return '';
+          return new Date(x).toLocaleString('id-ID', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          });
+        }
+
+        async function checkApi(){
+          try{ 
+            await fetch(API+'/'); 
+            apiOk.value = true; 
+          } catch{ 
+            apiOk.value = false; 
+          }
+          
+          if(apiOk.value && token.value){
+            try{ 
+              const response = await apiFetch('/auth/me',{ token: token.value }); 
+              user.value = response.user || response.data;
+            } catch{ 
+              user.value = null; 
+            }
+          } else {
+            // Mode lokal - gunakan auth dari localStorage
+            const localAuth = SPFK.getAuth();
+            if(localAuth) {
+              user.value = localAuth;
+            }
+          }
+        }
+
+        async function loadLoans(){
+          if(apiOk.value && token.value){
+            // Mode API
+            try{
+              const qs = new URLSearchParams();
+              if(filters.status) qs.set('status', filters.status);
+              if(filters.unit) qs.set('unit', filters.unit);
+              if(filters.roomType) qs.set('roomType', filters.roomType);
+              const data = await apiFetch('/loans?'+qs.toString(), { token: token.value });
+              loans.value = data;
+            }catch(e){
+              console.warn('API error, fallback to localStorage:', e);
+              loadLoansLocal();
+            }
+          } else {
+            // Mode lokal
+            loadLoansLocal();
+          }
+          kpi.total = loans.value.length;
+          kpi.approved = loans.value.filter(x=>x.status==='approved').length;
+          kpi.pending = loans.value.filter(x=>x.status==='pending').length;
+        }
+
+        function loadLoansLocal(){
+          let data = SPFK.getLoans();
+          if(filters.status) data = data.filter(x=>x.status===filters.status);
+          if(filters.unit) data = data.filter(x=>x.unit && x.unit.toLowerCase().includes(filters.unit.toLowerCase()));
+          if(filters.roomType) data = data.filter(x=>x.roomType===filters.roomType);
+          loans.value = data;
+        }
+
+        async function setStatus(id, status){
+          if(!canEdit.value) return;
+          if(apiOk.value && token.value){
+            // Mode API
+            try{
+              const email = notifyEmail[id]||'';
+              await apiFetch('/loans/'+id+'/status', { method:'PATCH', token: token.value, body:{ status, email } });
+            }catch(e){
+              console.warn('API error, fallback to localStorage:', e);
+              setStatusLocal(id, status);
+            }
+          } else {
+            // Mode lokal
+            setStatusLocal(id, status);
+          }
+          await loadLoans();
+        }
+
+        function setStatusLocal(id, status){
+          const list = SPFK.getLoans();
+          const item = list.find(x=>x.id===id);
+          if(item){ item.status = status; SPFK.setLoans(list); }
+        }
+
+        async function loadFacilities(){
+          let list = [];
+          if(apiOk.value && token.value){
+              try{
+                const res = await apiFetch('/facilities', { token: token.value });
+                // API dapat mengembalikan bentuk { success, data: [] } atau langsung array
+                if (Array.isArray(res)) list = res;
+                else if (Array.isArray(res?.data)) list = res.data;
+                else if (Array.isArray(res?.facilities)) list = res.facilities;
+                else list = [];
+              }catch(e){
+                console.warn('API error, using localStorage:', e);
+                const local = SPFK.getFacilities();
+                list = Array.isArray(local) ? local : [];
+              }
+            } else {
+              const local = SPFK.getFacilities();
+              list = Array.isArray(local) ? local : [];
+            }
+            // Normalize and ensure fields exist
+            facilities.value = (Array.isArray(list) ? list : []).map((f,i)=>({
+            id: f.id || ('fac_'+i),
+            name: f.name || '-',
+            type: f.type || '-',
+            capacity: (typeof f.capacity==='number'||typeof f.capacity==='string') ? f.capacity : '',
+            location: f.location || '',
+            description: f.description || '',
+            features: Array.isArray(f.features) ? f.features : (typeof f.features==='string' && f.features? f.features.split(',').map(s=>s.trim()).filter(Boolean) : [])
+          }));
+          console.log('Facilities loaded:', facilities.value.length, facilities.value);
+        }
+        async function createFacility(){
+          if(!isElevated.value){ alert('Hanya Admin/Staff yang dapat menambah fasilitas'); return; }
+          const featuresArr = Array.isArray(facForm.features) ? facForm.features : (facForm.features ? String(facForm.features).split(',').map(s=>s.trim()).filter(Boolean) : []);
+          const body = { ...facForm, features: featuresArr };
+          if(apiOk.value && token.value){
+            try{
+              await apiFetch('/facilities', { method:'POST', token: token.value, body });
+            }catch(e){
+              console.warn('API error, fallback to localStorage:', e);
+              const raw = SPFK.getFacilities();
+              const list = Array.isArray(raw) ? raw : [];
+              const id = body.id || (SPFK.utils && SPFK.utils.uid ? SPFK.utils.uid('fac') : ('fac_'+Date.now()));
+              list.push({ id, name: body.name, type: body.type, capacity: body.capacity, location: body.location, description: body.description, features: body.features||[] });
+              SPFK.setFacilities && SPFK.setFacilities(list);
+            }
+          } else {
+            const raw = SPFK.getFacilities();
+            const list = Array.isArray(raw) ? raw : [];
+            const id = body.id || (SPFK.utils && SPFK.utils.uid ? SPFK.utils.uid('fac') : ('fac_'+Date.now()));
+            list.push({ id, name: body.name, type: body.type, capacity: body.capacity, location: body.location, description: body.description, features: body.features||[] });
+            SPFK.setFacilities && SPFK.setFacilities(list);
+          }
+          facForm.name=''; facForm.type=''; facForm.capacity=0; facForm.location=''; facForm.features=''; facForm.description='';
+          await loadFacilities();
+        }
+        function editFacility(f){ editFac.value = { ...f, featuresInput: (f.features||[]).join(', ') } }
+        async function updateFacility(){
+          if(!isElevated.value){ alert('Hanya Admin/Staff yang dapat mengubah fasilitas'); return; }
+          const f = editFac.value; if(!f) return;
+          const featuresUpdate = Array.isArray(f.featuresInput) ? f.featuresInput : (f.featuresInput ? String(f.featuresInput).split(',').map(s=>s.trim()).filter(Boolean) : (Array.isArray(f.features)? f.features : []));
+          const body = { name:f.name, type:f.type, capacity:f.capacity, location:f.location, description:f.description||'', features: featuresUpdate };
+          if(apiOk.value && token.value){
+            try{
+              await apiFetch('/facilities/'+f.id, { method:'PUT', token: token.value, body });
+            }catch(e){
+              console.warn('API error, fallback to localStorage:', e);
+              const raw = SPFK.getFacilities();
+              const list = Array.isArray(raw) ? raw : [];
+              const idx = list.findIndex(x=>x.id===f.id);
+              if(idx>=0){ list[idx] = { ...list[idx], ...body }; SPFK.setFacilities && SPFK.setFacilities(list); }
+            }
+          } else {
+            const raw = SPFK.getFacilities();
+            const list = Array.isArray(raw) ? raw : [];
+            const idx = list.findIndex(x=>x.id===f.id);
+            if(idx>=0){ list[idx] = { ...list[idx], ...body }; SPFK.setFacilities && SPFK.setFacilities(list); }
+          }
+          editFac.value = null; await loadFacilities();
+        }
+        async function removeFacility(id){
+          if(!isElevated.value){ alert('Hanya Admin/Staff yang dapat menghapus fasilitas'); return; }
+          if(!confirm('Hapus fasilitas ini?')) return;
+          if(apiOk.value && token.value){
+            try{
+              await apiFetch('/facilities/'+id, { method:'DELETE', token: token.value });
+            }catch(e){
+              console.warn('API error, fallback to localStorage:', e);
+              const raw = SPFK.getFacilities();
+              const list = Array.isArray(raw) ? raw.filter(x=>x.id!==id) : [];
+              SPFK.setFacilities && SPFK.setFacilities(list);
+            }
+          } else {
+            const raw = SPFK.getFacilities();
+            const list = Array.isArray(raw) ? raw.filter(x=>x.id!==id) : [];
+            SPFK.setFacilities && SPFK.setFacilities(list);
+          }
+          await loadFacilities();
+        }
+
+        async function loadReport(){
+          if(apiOk.value && token.value){
+            try{
+              const qs = new URLSearchParams();
+              if(rep.unit) qs.set('unit', rep.unit);
+              if(rep.roomType) qs.set('roomType', rep.roomType);
+              if(rep.from) qs.set('from', rep.from);
+              if(rep.to) qs.set('to', rep.to);
+              const data = await apiFetch('/reports/summary?'+qs.toString(), { token: token.value });
+              Object.assign(report, data);
+            }catch(e){
+              console.warn('API error, using local report:', e);
+              loadReportLocal();
+            }
+          } else {
+            loadReportLocal();
+          }
+        }
+
+        function loadReportLocal(){
+          let data = SPFK.getLoans();
+          if(rep.unit) data = data.filter(x=>x.unit && x.unit.toLowerCase().includes(rep.unit.toLowerCase()));
+          if(rep.roomType) data = data.filter(x=>x.roomType===rep.roomType);
+          if(rep.from) data = data.filter(x=>x.startDate >= rep.from);
+          if(rep.to) data = data.filter(x=>x.endDate <= rep.to);
+          report.pending = data.filter(x=>x.status==='pending').length;
+          report.approved = data.filter(x=>x.status==='approved').length;
+          report.rejected = data.filter(x=>x.status==='rejected').length;
+          report.done = data.filter(x=>x.status==='done').length;
+        }
+
+        // Users Management
+        const users = ref([]);
+        const userFilters = reactive({ search: '', role: '' });
+        const userPage = ref(1);
+        const userPagination = ref(null);
+
+        async function fetchUsers(){
+          if(!apiOk.value || !token.value) {
+            alert('Fitur kelola users hanya tersedia dengan backend API');
+            return;
+          }
+          
+          try{
+            const qs = new URLSearchParams();
+            qs.set('page', userPage.value);
+            qs.set('limit', 20);
+            if(userFilters.search) qs.set('search', userFilters.search);
+            if(userFilters.role) qs.set('role', userFilters.role);
+            
+            const data = await apiFetch('/users?'+qs.toString(), { token: token.value });
+            users.value = data.users || [];
+            userPagination.value = data.pagination || null;
+          }catch(e){
+            console.error('Error fetching users:', e);
+            alert('Gagal memuat data users: ' + e.message);
+          }
+        }
+
+        async function updateUserRole(targetUser){
+          if(!apiOk.value || !token.value) return;
+          if(targetUser.id === user.value.id) {
+            alert('Tidak dapat mengubah role sendiri');
+            await fetchUsers();
+            return;
+          }
+          
+          if(!confirm(`Ubah role ${targetUser.name} menjadi ${targetUser.role}?`)) {
+            await fetchUsers();
+            return;
+          }
+          
+          try{
+            await apiFetch('/users/'+targetUser.id+'/role', { 
+              method:'PUT', 
+              token: token.value, 
+              body:{ role: targetUser.role } 
+            });
+            alert('Role berhasil diubah');
+            await fetchUsers();
+          }catch(e){
+            alert('Gagal mengubah role: ' + e.message);
+            await fetchUsers();
+          }
+        }
+
+        async function deleteUser(targetUser){
+          if(!apiOk.value || !token.value) return;
+          if(targetUser.id === user.value.id) {
+            alert('Tidak dapat menghapus akun sendiri');
+            return;
+          }
+          
+          if(!confirm(`Hapus user ${targetUser.name} (${targetUser.email})?\n\nSemua peminjaman dan data terkait akan ikut terhapus.`)) {
+            return;
+          }
+          
+          try{
+            await apiFetch('/users/'+targetUser.id, { method:'DELETE', token: token.value });
+            alert('User berhasil dihapus');
+            await fetchUsers();
+          }catch(e){
+            alert('Gagal menghapus user: ' + e.message);
+          }
+        }
+
+        // Bookings functions
+        async function loadBookings() {
+          if (apiOk.value) {
+            try {
+              const qs = new URLSearchParams();
+              if (bookingFilters.status) qs.set('status', bookingFilters.status);
+              
+              const response = await fetch(API + '/bookings?' + qs.toString());
+              const data = await response.json();
+              
+              if (data.success && data.data) {
+                bookings.value = data.data;
+                console.log('Bookings loaded from API:', bookings.value.length);
+              } else {
+                console.warn('Failed to load bookings from API');
+                loadBookingsLocal();
+              }
+            } catch (e) {
+              console.error('Error loading bookings from API:', e);
+              loadBookingsLocal();
+            }
+          } else {
+            loadBookingsLocal();
+          }
+          
+          // Update KPI
+          kpi.total = bookings.value.length;
+          kpi.approved = bookings.value.filter(x=>x.status==='approved').length;
+          kpi.pending = bookings.value.filter(x=>x.status==='pending').length;
+        }
+
+        function loadBookingsLocal() {
+          let data = SPFK.getBookings();
+          if (bookingFilters.status) {
+            data = data.filter(x => x.status === bookingFilters.status);
+          }
+          // Map to database format for consistency
+          bookings.value = data.map(b => ({
+            id: b.id,
+            booking_id: b.id,
+            borrower_name: b.requesterName || 'Unknown',
+            identity: b.identity || '',
+            unit: b.unit || '',
+            facility_id: b.facilityId,
+            facility_name: b.facilityName,
+            room_type: '',
+            start_date: b.startDate,
+            end_date: b.endDate,
+            start_time: b.startTime || '',
+            end_time: b.endTime || '',
+            notes: b.purpose || '',
+            document_name: b.documentName || b.document_name || '',
+            status: b.status,
+            created_at: b.createdAt,
+            updated_at: b.createdAt,
+            facilities: []
+          }));
+          console.log('Bookings loaded from localStorage:', bookings.value.length);
+        }
+
+        async function viewBookingDetail(booking) {
+          // Load full details including facilities
+          if (apiOk.value) {
+            try {
+              const response = await fetch(API + '/bookings/' + booking.booking_id);
+              const data = await response.json();
+              
+              console.log('API Response:', data);
+              console.log('Document name from API:', data.loan?.document_name);
+              
+              if (data.success && data.loan) {
+                selectedBooking.value = data.loan;
+              } else {
+                selectedBooking.value = booking;
+              }
+              
+              console.log('Selected booking:', selectedBooking.value);
+              console.log('Document name:', selectedBooking.value?.document_name);
+            } catch (e) {
+              console.error('Error loading booking detail:', e);
+              selectedBooking.value = booking;
+            }
+          } else {
+            selectedBooking.value = booking;
+            console.log('Using local booking data:', selectedBooking.value);
+          }
+        }
+
+        async function updateBookingStatus(bookingId, newStatus) {
+          if (!canEdit.value) {
+            alert('Anda tidak memiliki izin untuk mengubah status');
+            return;
+          }
+
+          if (!confirm(`Ubah status menjadi "${newStatus}"?`)) return;
+
+          if (apiOk.value) {
+            try {
+              const response = await fetch(API + '/bookings/' + bookingId + '/status', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+              });
+
+              const data = await response.json();
+              
+              if (data.success) {
+                alert('✅ Status berhasil diupdate!');
+                await loadBookings();
+                if (selectedBooking.value && selectedBooking.value.booking_id === bookingId) {
+                  selectedBooking.value.status = newStatus;
+                }
+              } else {
+                alert('❌ Gagal update status: ' + (data.error || 'Unknown error'));
+              }
+            } catch (e) {
+              console.error('Error updating booking status:', e);
+              alert('❌ Error: ' + e.message);
+            }
+          } else {
+            // Update in localStorage
+            const all = SPFK.getBookings();
+            const idx = all.findIndex(b => b.id === bookingId);
+            if (idx >= 0) {
+              all[idx].status = newStatus;
+              all[idx].updatedAt = new Date();
+              SPFK.setBookings(all);
+              await loadBookings();
+              alert('✅ Status berhasil diupdate!');
+            }
+          }
+        }
+
+        // Init
+        checkApi().then(async ()=>{
+          await Promise.allSettled([loadBookings(), loadFacilities(), loadReport()]);
+          if(tab.value === 'users' && isAdmin.value) {
+            await fetchUsers();
+          }
+        });
+
+        // Watch tab changes
+        const { watch } = Vue;
+        watch(tab, async (newTab) => {
+          if(newTab === 'users' && isAdmin.value) {
+            await fetchUsers();
+          } else if (newTab === 'bookings') {
+            await loadBookings();
+          }
+        });
+
+  return { apiOk, token, user, tab, loans, facilities, kpi, filters, notifyEmail, canView, isAdmin, isElevated, canEdit, canReport, facForm, editFac, rep, report,
+                 bookings, selectedBooking, bookingFilters, 
+                 users, userFilters, userPage, userPagination, fetchUsers, updateUserRole, deleteUser,
+                 dt, time, fmtDateTime, loadLoans, setStatus, loadFacilities, createFacility, editFacility, updateFacility, removeFacility, loadReport,
+                 loadBookings, viewBookingDetail, updateBookingStatus };
+      }
+    }).mount('#app-admin');
+  </script>
+  <script src="assets/js/auth-ui.js"></script>
+</body>
+</html>

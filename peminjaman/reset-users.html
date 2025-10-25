@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset Users - Sistem Peminjaman</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+    }
+    .container {
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 { color: #333; margin-top: 0; }
+    .btn {
+      background: #667eea;
+      color: white;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 10px 5px;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn-danger { background: #dc2626; }
+    .info {
+      background: #eff6ff;
+      border: 1px solid #3b82f6;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    .success {
+      background: #ecfdf5;
+      border: 1px solid #10b981;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+      display: none;
+    }
+    code {
+      background: #f3f4f6;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔄 Reset Akun Users</h1>
+    
+    <div class="info">
+      <strong>ℹ️ Informasi:</strong><br>
+      Halaman ini akan mereset data users dan membuat ulang akun default dengan email yang benar.
+    </div>
+
+    <h3>Akun Default Baru:</h3>
+    <ul>
+      <li><strong>Admin:</strong> <code>admin@admin.tau.ac.id</code> / <code>admin123</code></li>
+      <li><strong>Staff:</strong> <code>staff@staff.tau.ac.id</code> / <code>staff123</code></li>
+    </ul>
+
+    <div class="success" id="success-msg">
+      ✅ Users berhasil direset! Akun admin dan staff sudah siap digunakan.
+    </div>
+
+    <button class="btn btn-danger" onclick="resetUsers()">🔄 Reset Users Sekarang</button>
+    <button class="btn" onclick="location.href='login.html'">← Kembali ke Login</button>
+  </div>
+
+  <script src="assets/js/app.js"></script>
+  <script>
+    function resetUsers() {
+      if (confirm('Yakin ingin reset semua users? Data user lama akan hilang.')) {
+        // Hapus users lama
+        localStorage.removeItem('spfk_users');
+        
+        // Buat users baru dengan email yang benar
+        const defaultUsers = [
+          {id:'admin1', name:'Administrator', email:'admin@admin.tau.ac.id', role:'admin', password:'admin123'},
+          {id:'staff1', name:'Staff Fasilitas', email:'staff@staff.tau.ac.id', role:'staff', password:'staff123'}
+        ];
+        
+        localStorage.setItem('spfk_users', JSON.stringify(defaultUsers));
+        
+        // Logout user saat ini
+        localStorage.removeItem('spfk_auth');
+        localStorage.removeItem('spfk_auth_user');
+        localStorage.removeItem('spfk_auth_token');
+        
+        // Show success
+        document.getElementById('success-msg').style.display = 'block';
+        
+        // Redirect ke login setelah 2 detik
+        setTimeout(() => {
+          window.location.href = 'login.html';
+        }, 2000);
+      }
+    }
+  </script>
+</body>
+</html>

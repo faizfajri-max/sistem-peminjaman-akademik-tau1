@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Guide - Form Submissions</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #4F8EF7 0%, #3d7ae0 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 32px;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 40px;
+        }
+        .feature {
+            background: #f8f9fa;
+            border-left: 4px solid #4F8EF7;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .feature h3 {
+            margin-top: 0;
+            color: #4F8EF7;
+        }
+        .steps {
+            counter-reset: step-counter;
+            list-style: none;
+            padding: 0;
+        }
+        .steps li {
+            counter-increment: step-counter;
+            position: relative;
+            padding-left: 50px;
+            margin: 20px 0;
+        }
+        .steps li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 35px;
+            height: 35px;
+            background: #4F8EF7;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #4F8EF7;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            margin: 10px 10px 10px 0;
+            transition: all 0.3s;
+        }
+        .btn:hover {
+            background: #3d7ae0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(79, 142, 247, 0.4);
+        }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        .screenshot {
+            background: #e9ecef;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #28a745;
+            color: white;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+        .badge-warning {
+            background: #ffc107;
+            color: #000;
+        }
+        .badge-danger {
+            background: #dc3545;
+        }
+        .info-box {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        table th {
+            background: #4F8EF7;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+        table td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        table tr:hover {
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📋 Admin Panel - Form Submissions</h1>
+            <p>Panduan Lengkap Mengelola Pengajuan Peminjaman</p>
+        </div>
+
+        <div class="content">
+            <div class="info-box">
+                <strong>ℹ️ Info:</strong> Fitur baru ini memungkinkan admin melihat semua hasil form pengisian dari halaman borrow.html, lengkap dengan file upload dan detail lengkap!
+            </div>
+
+            <div class="feature">
+                <h3>🚀 Quick Start</h3>
+                <ol class="steps">
+                    <li>
+                        <strong>Setup Database</strong><br>
+                        Klik tombol di bawah untuk membuat tabel bookings
+                    </li>
+                    <li>
+                        <strong>Login Admin Panel</strong><br>
+                        Email: <code>admin@kampus.ac.id</code><br>
+                        Password: <code>admin123</code>
+                    </li>
+                    <li>
+                        <strong>Buka Tab "Form Submissions"</strong><br>
+                        Klik tab "📋 Form Submissions" di admin panel
+                    </li>
+                    <li>
+                        <strong>Kelola Booking</strong><br>
+                        Review, approve, atau reject pengajuan
+                    </li>
+                </ol>
+
+                <a href="http://localhost/peminjaman/api/setup-bookings.php" class="btn" target="_blank">
+                    🔧 Setup Database Now
+                </a>
+                <a href="http://localhost/peminjaman/admin.html" class="btn btn-secondary" target="_blank">
+                    🛠️ Open Admin Panel
+                </a>
+            </div>
+
+            <div class="feature">
+                <h3>✨ Fitur Utama</h3>
+                
+                <h4>1. Daftar Bookings</h4>
+                <p>Lihat semua pengajuan peminjaman dalam tabel lengkap:</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Kolom</th>
+                            <th>Keterangan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Kode Booking</strong></td>
+                            <td>ID unik format BK_xxxxx</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Peminjam</strong></td>
+                            <td>Nama lengkap peminjam</td>
+                        </tr>
+                        <tr>
+                            <td><strong>NIM/NIP</strong></td>
+                            <td>Nomor identitas</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Unit</strong></td>
+                            <td>Prodi atau unit organisasi</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Fasilitas</strong></td>
+                            <td>Nama ruangan + jenis</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Waktu</strong></td>
+                            <td>Tanggal dan jam peminjaman</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Status</strong></td>
+                            <td>
+                                <span class="badge-warning">Pending</span>
+                                <span class="badge">Approved</span>
+                                <span class="badge-danger">Rejected</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h4>2. Filter & Search</h4>
+                <ul>
+                    <li>Filter berdasarkan status (Pending, Approved, Rejected, Done)</li>
+                    <li>Tombol refresh untuk update data terbaru</li>
+                </ul>
+
+                <h4>3. Detail Modal</h4>
+                <p>Klik tombol <strong>"👁️ Detail"</strong> untuk melihat:</p>
+                <ul>
+                    <li>📝 Informasi peminjam lengkap (nama, NIM, unit)</li>
+                    <li>🏢 Detail fasilitas yang dipinjam</li>
+                    <li>📅 Waktu peminjaman (tanggal + jam)</li>
+                    <li>🛠️ Fasilitas tambahan (HDMI, Mic, Kursi, dll) + jumlah</li>
+                    <li>📝 Catatan dari peminjam</li>
+                    <li>📄 <strong>File dokumen yang diupload</strong> dengan tombol download</li>
+                    <li>⏰ Timestamp dibuat dan diupdate</li>
+                </ul>
+
+                <h4>4. Manajemen Status</h4>
+                <p>Admin dapat mengubah status dengan tombol:</p>
+                <ul>
+                    <li><strong>✅ Setujui</strong> - Approve peminjaman (untuk status pending)</li>
+                    <li><strong>❌ Tolak</strong> - Reject peminjaman (untuk status pending)</li>
+                    <li><strong>✔️ Selesai</strong> - Tandai selesai (untuk status approved)</li>
+                </ul>
+
+                <h4>5. File Upload & Download</h4>
+                <p>User dapat upload dokumen saat mengisi form:</p>
+                <ul>
+                    <li>Format: PDF, DOC, DOCX, XLS, XLSX, JPG, PNG</li>
+                    <li>Max size: 5 MB</li>
+                    <li>Admin dapat download dari detail modal</li>
+                    <li>File tersimpan di <code>api/uploads/</code></li>
+                </ul>
+            </div>
+
+            <div class="feature">
+                <h3>🎯 Workflow Admin</h3>
+                <ol class="steps">
+                    <li>
+                        <strong>User mengisi form</strong><br>
+                        User buka borrow.html → isi form → upload dokumen → submit
+                    </li>
+                    <li>
+                        <strong>Data masuk ke database</strong><br>
+                        Sistem otomatis simpan ke MySQL dengan status "pending"
+                    </li>
+                    <li>
+                        <strong>Admin review</strong><br>
+                        Admin buka tab Form Submissions → lihat daftar booking baru
+                    </li>
+                    <li>
+                        <strong>Admin cek detail</strong><br>
+                        Klik "Detail" → review informasi → download dokumen
+                    </li>
+                    <li>
+                        <strong>Admin approve/reject</strong><br>
+                        Klik tombol Setujui atau Tolak
+                    </li>
+                    <li>
+                        <strong>User dapat notifikasi</strong><br>
+                        User bisa cek status di halaman confirmation
+                    </li>
+                </ol>
+            </div>
+
+            <div class="warning-box">
+                <strong>⚠️ Penting:</strong>
+                <ul style="margin: 10px 0 0 0; padding-left: 20px;">
+                    <li>Pastikan database sudah di-setup dengan menjalankan setup-bookings.php</li>
+                    <li>Hanya user dengan role Admin atau Staff yang bisa akses fitur ini</li>
+                    <li>File upload tersimpan di folder api/uploads/ - pastikan folder memiliki permission yang benar</li>
+                    <li>Selalu backup database sebelum menghapus data</li>
+                </ul>
+            </div>
+
+            <div class="feature">
+                <h3>🔌 API Endpoints (untuk Developer)</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Endpoint</th>
+                            <th>Deskripsi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>GET</td>
+                            <td>/api/bookings</td>
+                            <td>List semua bookings (dengan filter status)</td>
+                        </tr>
+                        <tr>
+                            <td>GET</td>
+                            <td>/api/bookings/:id</td>
+                            <td>Detail booking by booking_id</td>
+                        </tr>
+                        <tr>
+                            <td>POST</td>
+                            <td>/api/bookings</td>
+                            <td>Create booking baru dari form</td>
+                        </tr>
+                        <tr>
+                            <td>PATCH</td>
+                            <td>/api/bookings/:id/status</td>
+                            <td>Update status booking</td>
+                        </tr>
+                        <tr>
+                            <td>POST</td>
+                            <td>/api/upload.php</td>
+                            <td>Upload file dokumen</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="feature">
+                <h3>📊 Sample Data</h3>
+                <p>Setup tool akan membuat 3 sample bookings:</p>
+                <ul>
+                    <li><code>BK_it6de9d6i</code> - Studio Podcast (approved)</li>
+                    <li><code>BK_q1i924j6i</code> - Ballroom Kampus (approved)</li>
+                    <li><code>BK_6fh3qucyf</code> - Ballroom Kampus (pending)</li>
+                </ul>
+                <p>Anda bisa test langsung dengan data ini!</p>
+                <a href="http://localhost/peminjaman/confirmation.html?id=BK_q1i924j6i" class="btn" target="_blank">
+                    👁️ Test Confirmation Page
+                </a>
+            </div>
+
+            <div style="text-align: center; padding: 40px 0 20px 0; border-top: 2px solid #e9ecef; margin-top: 40px;">
+                <h3>🚀 Ready to Start?</h3>
+                <a href="http://localhost/peminjaman/api/setup-bookings.php" class="btn" target="_blank">
+                    🔧 1. Setup Database
+                </a>
+                <a href="http://localhost/peminjaman/admin.html" class="btn" target="_blank">
+                    🛠️ 2. Open Admin Panel
+                </a>
+                <a href="http://localhost/peminjaman/borrow.html" class="btn btn-secondary" target="_blank">
+                    📝 3. Test Form Submission
+                </a>
+            </div>
+
+            <div style="text-align: center; color: #6c757d; padding: 20px;">
+                <small>Made with ❤️ for Sistem Peminjaman Fasilitas Kampus</small>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
